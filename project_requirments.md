@@ -195,3 +195,58 @@ To prevent scope creep and technical debt, EduNexa adheres to these normalizatio
 | Architectural Database Design ready       | ⏳ Next |
 | REST/GraphQL API Design ready             | ⏳ Next |
 | UI/UX Wireframes ready                    | ⏳ Next |
+
+# STEP 13 - FINAL REQUIREMENT MODEL
+The complete requirement structure can now be represented as:
+                         Uni Flow
+                             │
+             ┌───────────────┼───────────────┐
+             │               │               │
+           ADMIN           FACULTY         STUDENT
+             │               │               │
+       ┌─────┼─────┐    ┌────┼─────┐    ┌───┼─────────┐
+       │     │     │    │    │     │    │   │         │
+ Attendance Notice Faculty Attendance Timetable Marks Attendance Timetable
+                  Attendance         │              Marks
+                                     │              Holidays
+                                  Notice            Exams
+                                                    Notice
+
+The important part is that the diagram is derived from the requirements, not the other way around.
+
+# STEP 14 — WHAT THIS REQUIREMENT SHEET BECOMES
+This document should be treated as the foundation for the next stages.
+PROJECT REQUIREMENTS
+        │
+        ▼
+Requirement IDs
+        │
+        ▼
+Agent
+        │
+        ▼
+Action
+        │
+        ▼
+Entity
+        │
+        ▼
+Relation
+        │
+        ▼
+Entity Analysis
+        │
+        ▼
+Database Design
+        │
+        ▼
+API Design
+        │
+        ▼
+Role Access
+        │
+        ▼
+User Flow
+        │
+        ▼
+UI / UX
