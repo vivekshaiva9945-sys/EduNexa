@@ -40,11 +40,11 @@ Every business capability is translated into an identifiable, atomic requirement
 
 ## 3.1 Admin Requirements
 
-| ID     | Requirement                                                                 |
-| ------ | --------------------------------------------------------------------------- |
-| ADM-01 | Admin shall be able to view aggregated, college-wide student attendance.    |
+| ID     | Requirement                                                                   |
+| ------ | ----------------------------------------------------------------------------- |
+| ADM-01 | Admin shall be able to view aggregated, college-wide student attendance.      |
 | ADM-02 | Admin shall be able to publish global announcements to the institutional feed.|
-| ADM-03 | Admin shall be able to view faculty attendance and activity records.        |
+| ADM-03 | Admin shall be able to view faculty attendance and activity records.          |
 
 ## 3.2 Faculty Requirements
 
@@ -59,14 +59,14 @@ Every business capability is translated into an identifiable, atomic requirement
 
 ## 3.3 Student Requirements
 
-| ID     | Requirement                                                                  |
-| ------ | ---------------------------------------------------------------------------- |
-| STD-01 | Student shall be able to track their personal attendance records.            |
-| STD-02 | Student shall be able to view their specific class and lecture timetable.    |
-| STD-03 | Student shall be able to access their assessment grades and progress reports.|
-| STD-04 | Student shall be able to download course materials shared by their faculty.  |
-| STD-05 | Student shall be able to view the academic calendar (exams and holidays).    |
-| STD-06 | Student shall be able to view global institutional announcements.            |
+| ID     | Requirement                                                                    |
+| ------ | ------------------------------------------------------------------------------ |
+| STD-01 | Student shall be able to track their personal attendance records.              |
+| STD-02 | Student shall be able to view their specific class and lecture timetable.      |
+| STD-03 | Student shall be able to access their assessment grades and progress reports.  |
+| STD-04 | Student shall be able to download course materials shared by their faculty.    |
+| STD-05 | Student shall be able to view the academic calendar (exams and holidays).      |
+| STD-06 | Student shall be able to view global institutional announcements.              |
 
 ---
 
@@ -196,42 +196,53 @@ To prevent scope creep and technical debt, EduNexa adheres to these normalizatio
 | REST/GraphQL API Design ready             | ⏳ Next |
 | UI/UX Wireframes ready                    | ⏳ Next |
 
-# STEP 13 - FINAL REQUIREMENT MODEL
+---
+
+# STEP 13 — FINAL REQUIREMENT MODEL
+
 The complete requirement structure can now be represented as:
-                         Uni Flow
-                             │
-             ┌───────────────┼───────────────┐
-             │               │               │
-           ADMIN           FACULTY         STUDENT
-             │               │               │
-       ┌─────┼─────┐    ┌────┼─────┐    ┌───┼─────────┐
-       │     │     │    │    │     │    │   │         │
- Attendance Notice Faculty Attendance Timetable Marks Attendance Timetable
-                  Attendance         │              Marks
-                                     │              Holidays
-                                  Notice            Exams
-                                                    Notice
+
+```text
+                                 EduNexa
+                                    │
+            ┌───────────────────────┼───────────────────────┐
+            │                       │                       │
+          ADMIN                  FACULTY                 STUDENT
+            │                       │                       │
+      ┌─────┼─────┐           ┌─────┼─────┐           ┌─────┼─────┐
+      │     │     │           │     │     │           │     │     │
+  Student   │  Faculty    Student   │   Grades    Student   │   Grades
+Attendance  │ Attendance Attendance │             Attendance│
+            │                       │                       │
+      Announcement              Timetable               Timetable
+                                    │                       │
+                             Course Material         Course Material
+                                    │                       │
+                               Announcement         Academic Calendar
+                                                            │
+                                                       Announcement
 
 The important part is that the diagram is derived from the requirements, not the other way around.
 
 # STEP 14 — WHAT THIS REQUIREMENT SHEET BECOMES
-This document should be treated as the foundation for the next stages.
+
+This document should be treated as the foundation for the next stages of the SDLC (Software Development Life Cycle).
 PROJECT REQUIREMENTS
         │
         ▼
 Requirement IDs
         │
         ▼
-Agent
+      Agent
         │
         ▼
-Action
+     Action
         │
         ▼
-Entity
+     Entity
         │
         ▼
-Relation
+    Relation
         │
         ▼
 Entity Analysis
@@ -240,13 +251,13 @@ Entity Analysis
 Database Design
         │
         ▼
-API Design
+   API Design
         │
         ▼
-Role Access
+  Role Access
         │
         ▼
-User Flow
+   User Flow
         │
         ▼
-UI / UX
+    UI / UX
