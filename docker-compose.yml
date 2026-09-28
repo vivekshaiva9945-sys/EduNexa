@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # CONTAINER 1: FRONTEND
+  frontend:
+    image: node:18-alpine
+    container_name: edunexa-frontend
+    # This is a placeholder command to keep the container running until you write your Next.js code
+    command: sh -c "echo 'Next.js Frontend Ready' && tail -f /dev/null"
+    ports:
+      - "3000:3000" # Exposes port 3000 to your host machine
+    networks:
+      - edunexa-network
+
+  # CONTAINER 2: BACKEND
+  backend:
+    image: python:3.10-slim
+    container_name: edunexa-backend
+    # This is a placeholder command to keep the container running until you write your FastAPI code
+    command: sh -c "echo 'FastAPI Backend Ready' && tail -f /dev/null"
+    ports:
+      - "8000:8000" # Exposes port 8000 to your host machine
+    depends_on:
+      - database
+    networks:
+      - edunexa-network
+
+  # CONTAINER 3: DATABASE
+  database:
+    image: postgres:latest
+    container_name: edunexa-db
+    environment:
+      POSTGRES_USER: edunexa_admin
+      POSTGRES_PASSWORD: securepassword123
+      POSTGRES_DB: edunexa_multi_tenant
+    # Notice there is NO 'ports' mapping here. This satisfies your security rule:
+    # It is completely hidden from the outside and only accessible by the backend.
+    networks:
+      - edunexa-network
+
+# This creates an internal private network for your 3 containers to talk to each other
+networks:
+  edunexa-network:
+    driver: bridge
