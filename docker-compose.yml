@@ -1,44 +1,66 @@
-version: '3.8'
-
 services:
-  # CONTAINER 1: FRONTEND
+  # CONTAINER 1: FRONTEND (Next.js)
   frontend:
     image: node:18-alpine
     container_name: edunexa-frontend
-    # This is a placeholder command to keep the container running until you write your Next.js code
+    restart: unless-stopped
     command: sh -c "echo 'Next.js Frontend Ready' && tail -f /dev/null"
     ports:
-      - "3000:3000" # Exposes port 3000 to your host machine
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
     networks:
       - edunexa-network
 
-  # CONTAINER 2: BACKEND
+  # CONTAINER 2: BACKEND (FastAPI)
   backend:
     image: python:3.10-slim
     container_name: edunexa-backend
-    # This is a placeholder command to keep the container running until you write your FastAPI code
+    restart: unless-stopped
     command: sh -c "echo 'FastAPI Backend Ready' && tail -f /dev/null"
     ports:
-      - "8000:8000" # Exposes port 8000 to your host machine
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://edunexa_admin:securepassword123@database:5432/edunexa_multi_tenant
+      - DB_USER=edunexa_admin
+      - DB_PASSWORD=securepassword123
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_NAME=edunexa_multi_tenant
+      - ENVIRONMENT=development
     depends_on:
-      - database
+      database:
+        condition: service_healthy
     networks:
       - edunexa-network
 
-  # CONTAINER 3: DATABASE
+  # CONTAINER 3: DATABASE (Multi-Tenant PostgreSQL)
   database:
-    image: postgres:latest
+    image: postgres:15-alpine
     container_name: edunexa-db
+    restart: unless-stopped
     environment:
       POSTGRES_USER: edunexa_admin
       POSTGRES_PASSWORD: securepassword123
       POSTGRES_DB: edunexa_multi_tenant
-    # Notice there is NO 'ports' mapping here. This satisfies your security rule:
-    # It is completely hidden from the outside and only accessible by the backend.
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - edunexa_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edunexa_admin -d edunexa_multi_tenant"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - edunexa-network
 
-# This creates an internal private network for your 3 containers to talk to each other
+# Persistent data storage for PostgreSQL
+volumes:
+  edunexa_pgdata:
+    driver: local
+
+# Internal private bridge network for inter-container communication
 networks:
   edunexa-network:
     driver: bridge
