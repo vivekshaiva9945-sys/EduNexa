@@ -1,4 +1,4 @@
-# UniFlow — API Specification
+# EduNexa — API Specification
 
 ## 1. API Design Conventions
 
