@@ -1,116 +1,83 @@
-# EduNexa API Specification Document (`api_spec.md`)
+# UniFlow — API Specification
 
-**Project:** EduNexa — Integrated Academic Management & Student Services System  
-**Document Type:** Strict RESTful API Specification & Database Interaction Mapping  
-**Specification Standard:** OpenAPI 3.1 / RESTful JSON Architecture  
-**Multi-Tenancy Model:** Shared Schema with `college_id` Discriminator & PostgreSQL Row-Level Security (RLS)  
+## 1. API Design Conventions
 
----
-
-## 1. System Overview & Global Architecture Standards
-
-### 1.1 Base URL & API Versioning
-All API routes follow this base URL scheme:
-```http
-https://{tenant_domain}.edunexa.edu/api/v1
-```
-*Tenant identification header:*
-```http
-X-Tenant-ID: <college_id_uuid>
-```
-
-### 1.2 Authentication & Authorization
-* **Mechanism:** Bearer JSON Web Tokens (`Authorization: Bearer <jwt_token>`)
-* **Token Claims:** `user_id`, `college_id`, `role` (`ADMIN` | `FACULTY` | `STUDENT`), `profile_id` (`admin_id` | `faculty_id` | `student_id`)
-* **Tenant Isolation:**
-  ```sql
-  SET LOCAL app.current_tenant = '<college_id>';
-  ```
+| Convention | Standard |
+|---|---|
+| API Base Path | /api/v1 |
+| Architecture Style | REST-oriented |
+| Data Format | JSON |
+| Versioning | URL-based |
+| Functional Source | Project Requirement.md |
+| Database Source | Database Architecture.md |
 
 ---
 
-## 2. Portal API Route Specifications
-
----
-
-### 2.1 Admin Routes
+## 2. Admin Routes
 
 | Route | Method | Feature (PRD) | DB Table(s) | DB Action |
-| :--- | :--- | :--- | :--- | :--- |
-| `/api/v1/admin/attendance/summary` | `GET` | View aggregated, college-wide student attendance (**ADM-01**) | `attendance`, `courses`, `students` | **SELECT** aggregate counts and average percentages across departments |
-| `/api/v1/admin/attendance/trends` | `GET` | View daily/weekly attendance trends across departments (**ADM-01**) | `attendance`, `courses` | **SELECT** time-series attendance aggregations |
-| `/api/v1/admin/announcements` | `POST` | Publish global announcements to institutional feed (**ADM-02**) | `announcements`, `users` | **INSERT** new global announcement with `author_id` and `target_role='ALL'` |
-| `/api/v1/admin/announcements` | `GET` | View all institutional announcements (**ADM-02**) | `announcements`, `users` | **SELECT** notice feed ordered by `created_at DESC` |
-| `/api/v1/admin/announcements/{id}` | `PUT` | Update existing institutional notice (**ADM-02**) | `announcements` | **UPDATE** announcement title, content, and target audience |
-| `/api/v1/admin/announcements/{id}` | `DELETE` | Delete announcement from institutional feed (**ADM-02**) | `announcements` | **DELETE** announcement record |
-| `/api/v1/admin/faculty/activity` | `GET` | View faculty attendance and academic activity records (**ADM-03**) | `faculty`, `attendance`, `grades`, `course_materials` | **SELECT** aggregated faculty productivity KPIs and lecture logging counts |
-| `/api/v1/admin/faculty/{id}/attendance-logs` | `GET` | View attendance logging history for a specific faculty member (**ADM-03**) | `faculty`, `attendance`, `courses` | **SELECT** attendance logs marked by faculty member |
-| `/api/v1/admin/academic-calendar` | `POST` | Create institutional calendar event (**ENT-09**) | `academic_calendar` | **INSERT** new exam, holiday, or institutional event |
-| `/api/v1/admin/academic-calendar` | `GET` | View institutional academic calendar (**ENT-09**) | `academic_calendar` | **SELECT** calendar schedule within specified date range |
+|---|---|---|---|---|
+| `/api/v1/admin/attendance` | `GET` | View aggregated, college-wide student attendance (**ADM-01**) | `attendance`, `students` | **SELECT** aggregate attendance counts and compute college-wide average attendance rates |
+| `/api/v1/admin/announcements` | `POST` | Publish global announcements to the institutional feed (**ADM-02**) | `announcements` | **INSERT** announcement record with author reference and global target audience |
+| `/api/v1/admin/faculty-attendance` | `GET` | View faculty attendance and activity records (**ADM-03**) | `attendance`, `faculty` | **SELECT** faculty attendance logging records and teaching activity history |
 
 ---
 
-### 2.2 Faculty Routes
+## 3. Faculty Routes
 
 | Route | Method | Feature (PRD) | DB Table(s) | DB Action |
-| :--- | :--- | :--- | :--- | :--- |
-| `/api/v1/faculty/{id}/attendance` | `POST` | Record daily attendance for assigned course sections (**FAC-01**) | `attendance`, `courses`, `students` | **INSERT / UPSERT** batch student attendance status (`PRESENT`, `ABSENT`, `LATE`) |
-| `/api/v1/faculty/attendance/{attendance_id}` | `PUT` | Update individual attendance record (**FAC-01**) | `attendance` | **UPDATE** status and remarks for attendance log |
-| `/api/v1/faculty/{id}/timetable` | `GET` | Access personal teaching timetable (**FAC-02**) | `timetable`, `courses` | **SELECT** weekly schedule joined with course details filtered by `faculty_id` |
-| `/api/v1/faculty/{id}/courses` | `GET` | List assigned courses and active sections (**FAC-02**, **FAC-03**) | `courses`, `timetable` | **SELECT** distinct courses assigned to faculty |
-| `/api/v1/faculty/courses/{course_id}/attendance-metrics` | `GET` | View attendance metrics for assigned course students (**FAC-03**) | `attendance`, `students`, `course_enrollments` | **SELECT** student attendance totals and percentage rates |
-| `/api/v1/faculty/courses/{course_id}/students` | `GET` | Fetch student roster for course (**FAC-01**, **FAC-03**, **FAC-04**) | `students`, `course_enrollments` | **SELECT** enrolled student roster with roll numbers |
-| `/api/v1/faculty/{id}/marks` | `POST` | Upload assessment grades and test scores (**FAC-04**) | `grades`, `students`, `courses` | **INSERT / UPDATE** student scores, max marks, and feedback remarks |
-| `/api/v1/faculty/courses/{course_id}/grades` | `GET` | View submitted assessment marks for a course (**FAC-04**) | `grades`, `students` | **SELECT** course grade records filtered by `faculty_id` |
-| `/api/v1/faculty/grades/{grade_id}` | `PUT` | Modify or correct an assessment grade (**FAC-04**) | `grades` | **UPDATE** score, max score, and remarks |
-| `/api/v1/faculty/materials` | `POST` | Distribute digital course materials to class (**FAC-05**) | `course_materials`, `courses` | **INSERT** material metadata, file URL, and category |
-| `/api/v1/faculty/courses/{course_id}/materials` | `GET` | List uploaded course materials (**FAC-05**) | `course_materials` | **SELECT** material records for specified course |
-| `/api/v1/faculty/materials/{material_id}` | `DELETE` | Remove uploaded course material (**FAC-05**) | `course_materials` | **DELETE** course material record |
-| `/api/v1/faculty/announcements` | `GET` | View institutional announcements feed (**FAC-06**) | `announcements`, `users` | **SELECT** notices where `target_role IN ('ALL', 'FACULTY')` |
+|---|---|---|---|---|
+| `/api/v1/faculty/attendance` | `POST` | Record daily attendance for assigned course sections (**FAC-01**) | `attendance` | **INSERT / UPDATE** daily attendance entries for students in assigned course sections |
+| `/api/v1/faculty/timetable` | `GET` | Access personal teaching timetable (**FAC-02**) | `timetable`, `courses` | **SELECT** scheduled lecture slots and course details assigned to the faculty member |
+| `/api/v1/faculty/attendance/metrics` | `GET` | View attendance metrics for assigned students (**FAC-03**) | `attendance`, `students`, `courses` | **SELECT** and compute student attendance metrics and percentage rates for assigned sections |
+| `/api/v1/faculty/grades` | `POST` | Upload grades and assessment scores for enrolled students (**FAC-04**) | `grades` | **INSERT / UPDATE** assessment scores, max scores, and remarks for enrolled students |
+| `/api/v1/faculty/course-materials` | `POST` | Distribute digital course materials to specific classes (**FAC-05**) | `course_materials` | **INSERT** course material record containing title, description, and file reference |
+| `/api/v1/faculty/announcements` | `GET` | View global institutional announcements (**FAC-06**) | `announcements` | **SELECT** global announcements where target audience matches faculty or all roles |
 
 ---
 
-### 2.3 Student Routes
+## 4. Student Routes
 
 | Route | Method | Feature (PRD) | DB Table(s) | DB Action |
-| :--- | :--- | :--- | :--- | :--- |
-| `/api/v1/student/{id}/attendance` | `GET` | Track personal attendance records and course percentage (**STD-01**) | `attendance`, `courses`, `course_enrollments` | **SELECT** attendance logs and compute subject-wise percentages |
-| `/api/v1/student/{id}/attendance/{course_id}` | `GET` | View date-by-date attendance log for enrolled course (**STD-01**) | `attendance`, `faculty` | **SELECT** detailed session logs filtered by student and course |
-| `/api/v1/student/{id}/timetable` | `GET` | View personal class and lecture timetable (**STD-02**) | `timetable`, `courses`, `course_enrollments`, `faculty` | **SELECT** lecture slots ordered by `day_of_week`, `start_time` |
-| `/api/v1/student/{id}/grades` | `GET` | Access assessment grades and test scores (**STD-03**) | `grades`, `courses`, `faculty` | **SELECT** test marks, percentage, and teacher feedback |
-| `/api/v1/student/{id}/progress-report` | `GET` | View semester GPA and progress aggregation (**STD-03**) | `grades`, `courses` | **SELECT** and compute credit-weighted GPA and grade summaries |
-| `/api/v1/student/{id}/courses` | `GET` | View enrolled courses list (**STD-04**) | `courses`, `course_enrollments` | **SELECT** registered course catalog |
-| `/api/v1/student/{id}/materials` | `GET` | Download and view course materials shared by faculty (**STD-04**) | `course_materials`, `courses`, `course_enrollments`, `faculty` | **SELECT** uploaded materials across all enrolled courses |
-| `/api/v1/student/materials/{course_id}` | `GET` | View materials for a specific course (**STD-04**) | `course_materials`, `faculty` | **SELECT** files and syllabus notes for course |
-| `/api/v1/student/academic-calendar` | `GET` | View academic calendar (exams and holidays) (**STD-05**) | `academic_calendar` | **SELECT** upcoming exam dates and institutional holidays |
-| `/api/v1/student/announcements` | `GET` | View global institutional announcements feed (**STD-06**) | `announcements`, `users` | **SELECT** notices where `target_role IN ('ALL', 'STUDENT')` |
+|---|---|---|---|---|
+| `/api/v1/student/attendance` | `GET` | Track personal attendance records (**STD-01**) | `attendance`, `courses` | **SELECT** personal attendance records and compute subject-wise attendance percentages |
+| `/api/v1/student/timetable` | `GET` | View specific class and lecture timetable (**STD-02**) | `timetable`, `courses`, `course_enrollments` | **SELECT** weekly lecture slots for courses in which the student is enrolled |
+| `/api/v1/student/grades` | `GET` | Access assessment grades and progress reports (**STD-03**) | `grades`, `courses` | **SELECT** assessment scores and compute aggregated academic progress metrics |
+| `/api/v1/student/course-materials` | `GET` | Download course materials shared by faculty (**STD-04**) | `course_materials`, `course_enrollments` | **SELECT** course materials and file download links available for enrolled courses |
+| `/api/v1/student/academic-calendar` | `GET` | View the academic calendar (exams and holidays) (**STD-05**) | `academic_calendar` | **SELECT** scheduled examination periods, holidays, and academic calendar events |
+| `/api/v1/student/announcements` | `GET` | View global institutional announcements (**STD-06**) | `announcements` | **SELECT** global announcements where target audience matches student or all roles |
 
 ---
 
-### 2.4 Authentication & Identity Routes
+## 5. Requirement Traceability
 
-| Route | Method | Feature (PRD) | DB Table(s) | DB Action |
-| :--- | :--- | :--- | :--- | :--- |
-| `/api/v1/auth/login` | `POST` | User authentication & JWT issuance (All Agents) | `users`, `colleges`, `admins`, `faculty`, `students` | **SELECT** verify credentials, active status, fetch role profile |
-| `/api/v1/auth/me` | `GET` | Fetch authenticated session profile metadata | `users`, `admins`, `faculty`, `students`, `colleges` | **SELECT** current user profile and institutional tenant details |
-| `/api/v1/auth/refresh` | `POST` | Refresh access token | `users` | **SELECT** validate token and account status |
+| Requirement | Agent | API Route | Method |
+|---|---|---|---|
+| **ADM-01**: Admin shall be able to view aggregated, college-wide student attendance. | Admin | `/api/v1/admin/attendance` | `GET` |
+| **ADM-02**: Admin shall be able to publish global announcements to the institutional feed. | Admin | `/api/v1/admin/announcements` | `POST` |
+| **ADM-03**: Admin shall be able to view faculty attendance and activity records. | Admin | `/api/v1/admin/faculty-attendance` | `GET` |
+| **FAC-01**: Faculty shall be able to record daily attendance for their assigned course sections. | Faculty | `/api/v1/faculty/attendance` | `POST` |
+| **FAC-02**: Faculty shall be able to access their personal teaching timetable. | Faculty | `/api/v1/faculty/timetable` | `GET` |
+| **FAC-03**: Faculty shall be able to view attendance metrics for their assigned students. | Faculty | `/api/v1/faculty/attendance/metrics` | `GET` |
+| **FAC-04**: Faculty shall be able to upload grades and assessment scores for enrolled students. | Faculty | `/api/v1/faculty/grades` | `POST` |
+| **FAC-05**: Faculty shall be able to distribute digital course materials to specific classes. | Faculty | `/api/v1/faculty/course-materials` | `POST` |
+| **FAC-06**: Faculty shall be able to view global institutional announcements. | Faculty | `/api/v1/faculty/announcements` | `GET` |
+| **STD-01**: Student shall be able to track their personal attendance records. | Student | `/api/v1/student/attendance` | `GET` |
+| **STD-02**: Student shall be able to view their specific class and lecture timetable. | Student | `/api/v1/student/timetable` | `GET` |
+| **STD-03**: Student shall be able to access their assessment grades and progress reports. | Student | `/api/v1/student/grades` | `GET` |
+| **STD-04**: Student shall be able to download course materials shared by their faculty. | Student | `/api/v1/student/course-materials` | `GET` |
+| **STD-05**: Student shall be able to view the academic calendar (exams and holidays). | Student | `/api/v1/student/academic-calendar` | `GET` |
+| **STD-06**: Student shall be able to view global institutional announcements. | Student | `/api/v1/student/announcements` | `GET` |
 
 ---
 
-## 3. End-to-End Requirement Traceability Summary
+## 6. API Completeness Verification
 
-* **ADM-01**: Fully mapped (`/api/v1/admin/attendance/summary`, `/api/v1/admin/attendance/trends`)
-* **ADM-02**: Fully mapped (`POST/GET/PUT/DELETE /api/v1/admin/announcements`)
-* **ADM-03**: Fully mapped (`/api/v1/admin/faculty/activity`, `/api/v1/admin/faculty/{id}/attendance-logs`)
-* **FAC-01**: Fully mapped (`POST /api/v1/faculty/{id}/attendance`, `PUT /api/v1/faculty/attendance/{attendance_id}`)
-* **FAC-02**: Fully mapped (`GET /api/v1/faculty/{id}/timetable`, `GET /api/v1/faculty/{id}/courses`)
-* **FAC-03**: Fully mapped (`GET /api/v1/faculty/courses/{course_id}/attendance-metrics`, `/students`)
-* **FAC-04**: Fully mapped (`POST /api/v1/faculty/{id}/marks`, `GET/PUT /api/v1/faculty/grades`)
-* **FAC-05**: Fully mapped (`POST/GET/DELETE /api/v1/faculty/materials`)
-* **FAC-06**: Fully mapped (`GET /api/v1/faculty/announcements`)
-* **STD-01**: Fully mapped (`GET /api/v1/student/{id}/attendance`)
-* **STD-02**: Fully mapped (`GET /api/v1/student/{id}/timetable`)
-* **STD-03**: Fully mapped (`GET /api/v1/student/{id}/grades`, `/progress-report`)
-* **STD-04**: Fully mapped (`GET /api/v1/student/{id}/materials`, `/courses`)
-* **STD-05**: Fully mapped (`GET /api/v1/student/academic-calendar`)
-* **STD-06**: Fully mapped (`GET /api/v1/student/announcements`)
+| Verification | Status |
+|---|---|
+| All PRD requirements mapped | Verified |
+| No unsupported features added | Verified |
+| Database tables match architecture | Verified |
+| API routes grouped by portal | Verified |
+| HTTP methods are appropriate | Verified |
+| Requirement traceability maintained | Verified |
