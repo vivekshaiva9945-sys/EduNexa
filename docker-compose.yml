@@ -15,10 +15,14 @@ services:
 
   # CONTAINER 2: BACKEND (FastAPI)
   backend:
-    image: python:3.10-slim
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: edunexa-backend
     restart: unless-stopped
-    command: sh -c "echo 'FastAPI Backend Ready' && tail -f /dev/null"
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
     environment:
