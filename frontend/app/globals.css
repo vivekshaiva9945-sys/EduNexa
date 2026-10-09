@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --primary: 222 47% 11%;
+    --accent: 221 83% 53%;
+    --accent-secondary: 262 83% 58%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+    --destructive: 0 84% 60%;
+    --bg-light: 210 40% 98%;
+  }
+
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.35s ease-out forwards;
+}
+
+/* Glassmorphic card styling */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
