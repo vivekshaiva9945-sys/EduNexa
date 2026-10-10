@@ -1,10 +1,15 @@
 services:
   # CONTAINER 1: FRONTEND (Next.js)
   frontend:
-    image: node:18-alpine
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: edunexa-frontend
     restart: unless-stopped
-    command: sh -c "echo 'Next.js Frontend Ready' && tail -f /dev/null"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
     ports:
       - "3000:3000"
     environment:
