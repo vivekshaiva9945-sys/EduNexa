@@ -37,39 +37,49 @@ export default function LandingPage() {
 
   const showcaseItems = [
     {
+      code: "CS-301",
+      credits: "4 Credits • Core",
       src: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600&q=80",
-      title: "Distributed Computing",
-      subtitle: "CS-301 • Dr. Rajesh Nambiar",
+      title: "Distributed Computing Systems",
+      subtitle: "Dr. Rajesh Nambiar • Dept. of Computer Science",
       tag: "Computer Science",
-      rating: "★ 4.95 (142 students)",
+      rating: "4.95 (142 enrolled)",
     },
     {
+      code: "AI-402",
+      credits: "4 Credits • Advanced",
       src: "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?w=600&q=80",
-      title: "Neural Networks & Deep Learning",
-      subtitle: "AI-402 • Prof. Sarah Connor",
+      title: "Deep Neural Networks & NLP",
+      subtitle: "Prof. Sarah Connor • Machine Intelligence Lab",
       tag: "Artificial Intelligence",
-      rating: "★ 4.98 (210 students)",
+      rating: "4.98 (210 enrolled)",
     },
     {
+      code: "MATH-204",
+      credits: "3 Credits • Theory",
       src: "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=600&q=80",
       title: "Discrete Mathematics & Logic",
-      subtitle: "MATH-204 • Dr. Alan Turing",
+      subtitle: "Dr. Alan Turing • Mathematical Sciences",
       tag: "Mathematics",
-      rating: "★ 4.88 (98 students)",
+      rating: "4.88 (98 enrolled)",
     },
     {
+      code: "ECE-310",
+      credits: "4 Credits • Lab Included",
       src: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80",
-      title: "Embedded Systems & RTOS",
-      subtitle: "ECE-310 • Prof. H. Karimi",
+      title: "Real-time Embedded Systems",
+      subtitle: "Prof. H. Karimi • Dept. of Microelectronics",
       tag: "Electronics",
-      rating: "★ 4.91 (115 students)",
+      rating: "4.91 (115 enrolled)",
     },
     {
+      code: "CS-415",
+      credits: "3 Credits • Elective",
       src: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&q=80",
       title: "Cloud Infrastructure Architecture",
-      subtitle: "CS-415 • Dr. Rajesh Nambiar",
+      subtitle: "Dr. Rajesh Nambiar • Systems Architecture",
       tag: "Cloud & DevOps",
-      rating: "★ 4.96 (180 students)",
+      rating: "4.96 (180 enrolled)",
     },
   ];
 
@@ -227,22 +237,16 @@ export default function LandingPage() {
               Curated Academic Offerings
             </h2>
             <p className="mx-auto max-w-xl text-xs sm:text-sm text-slate-400">
-              Swipe, drag, and interact with live registered syllabus offerings across Apex Institute & Horizon University.
+              Swipe, drag, or click arrows to explore active syllabus offerings across Apex Institute & Horizon University.
             </p>
           </div>
 
-          <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-slate-900/60 to-slate-950/80 p-6 md:p-10 backdrop-blur-xl shadow-2xl">
+          <div className="relative rounded-3xl border border-slate-800/80 bg-gradient-to-b from-slate-900/60 via-slate-900/40 to-slate-950/80 p-4 sm:p-8 backdrop-blur-xl shadow-2xl shadow-indigo-950/40 overflow-hidden">
             <CircularCarousel
               items={showcaseItems}
-              preset="cylinder"
-              intro="rise"
-              cardWidth={270}
-              aspectRatio={1.3}
-              speed={10}
-              autoplay="drift"
-              draggable={true}
-              pauseOnHover={true}
-              captions={true}
+              radius={380}
+              autoplay={true}
+              speed={0.2}
             />
           </div>
         </div>
