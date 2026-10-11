@@ -20,7 +20,7 @@ export default function FacultyAttendancePage() {
   const { courses, getCourseStudents, submitAttendance, isSubmittingAttendance } =
     useFaculty();
 
-  const [selectedCourse, setSelectedCourse] = useState("crs-cs101");
+  const [selectedCourse, setSelectedCourse] = useState("");
   const [sessionDate, setSessionDate] = useState("2026-10-09");
   const [students, setStudents] = useState<any[]>([]);
   const [attendanceState, setAttendanceState] = useState<
@@ -29,8 +29,16 @@ export default function FacultyAttendancePage() {
   const [submittedMessage, setSubmittedMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (courses.length > 0 && (!selectedCourse || selectedCourse === "crs-cs101")) {
+      setSelectedCourse(courses[0].course_id);
+    }
+  }, [courses, selectedCourse]);
+
+  useEffect(() => {
     async function loadRoster() {
-      const roster = await getCourseStudents(selectedCourse);
+      const activeId = selectedCourse || (courses.length > 0 ? courses[0].course_id : "");
+      if (!activeId) return;
+      const roster = await getCourseStudents(activeId);
       setStudents(roster);
       const initial: Record<string, any> = {};
       roster.forEach((s: any) => {
@@ -43,7 +51,7 @@ export default function FacultyAttendancePage() {
       setSubmittedMessage(null);
     }
     loadRoster();
-  }, [selectedCourse]);
+  }, [selectedCourse, courses]);
 
   const setAllStatus = (status: "PRESENT" | "ABSENT") => {
     setAttendanceState((prev) => {

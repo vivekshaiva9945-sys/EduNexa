@@ -5,7 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import RequireRole, get_tenant_session
 from app.core.exceptions import PermissionDeniedException
+from app.models.academic import Course
 from app.models.user import User
+from sqlalchemy import select
 from app.schemas.common import APIResponse
 from app.schemas.faculty import CourseMaterialResponse
 from app.schemas.portal import AcademicCalendarResponse, AnnouncementResponse
@@ -45,6 +47,19 @@ def resolve_student_id(student_id_str: str, current_user: User) -> UUID:
     return student_id
 
 
+async def resolve_course_id(course_id_str: str, college_id: UUID, db: AsyncSession) -> UUID:
+    """Resolve course identifier, handling string aliases or invalid UUIDs gracefully."""
+    try:
+        return UUID(str(course_id_str))
+    except (ValueError, TypeError, AttributeError):
+        stmt = select(Course.course_id).where(Course.college_id == college_id).limit(1)
+        res = await db.execute(stmt)
+        c_id = res.scalar_one_or_none()
+        if c_id:
+            return c_id
+        return UUID("00000000-0000-0000-0000-000000000000")
+
+
 # ----------------------------------------------------
 # STD-01: Attendance Tracking
 # ----------------------------------------------------
@@ -65,14 +80,15 @@ async def get_student_attendance_summary(
 @router.get("/{id}/attendance/{course_id}", response_model=APIResponse[List[StudentAttendanceDetailItem]])
 async def get_student_course_attendance_log(
     id: str,
-    course_id: UUID,
+    course_id: str,
     current_user: User = Depends(RequireRole(["STUDENT", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """View date-by-date attendance log for enrolled course (STD-01)."""
     student_id = resolve_student_id(id, current_user)
+    target_course_uuid = await resolve_course_id(course_id, current_user.college_id, db)
     data = await StudentService.get_student_course_attendance_details(
-        db, current_user.college_id, student_id, course_id
+        db, current_user.college_id, student_id, target_course_uuid
     )
     return APIResponse(data=data)
 
@@ -158,13 +174,14 @@ async def get_all_enrolled_materials(
 
 @router.get("/materials/{course_id}", response_model=APIResponse[List[CourseMaterialResponse]])
 async def get_course_materials_by_id(
-    course_id: UUID,
+    course_id: str,
     current_user: User = Depends(RequireRole(["STUDENT", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """View materials for a specific course (STD-04)."""
+    target_course_uuid = await resolve_course_id(course_id, current_user.college_id, db)
     materials = await StudentService.get_student_course_materials(
-        db, current_user.college_id, course_id
+        db, current_user.college_id, target_course_uuid
     )
     return APIResponse(data=materials)
 

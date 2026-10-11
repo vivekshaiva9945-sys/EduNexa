@@ -20,7 +20,7 @@ export default function FacultyGradesPage() {
   const { courses, getCourseStudents, submitGrades, isSubmittingGrades } =
     useFaculty();
 
-  const [selectedCourse, setSelectedCourse] = useState("crs-cs101");
+  const [selectedCourse, setSelectedCourse] = useState("");
   const [assessmentName, setAssessmentName] = useState("Midterm Examination 2024");
   const [maxScore, setMaxScore] = useState(100);
   const [students, setStudents] = useState<any[]>([]);
@@ -28,8 +28,16 @@ export default function FacultyGradesPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (courses.length > 0 && (!selectedCourse || selectedCourse === "crs-cs101")) {
+      setSelectedCourse(courses[0].course_id);
+    }
+  }, [courses, selectedCourse]);
+
+  useEffect(() => {
     async function load() {
-      const roster = await getCourseStudents(selectedCourse);
+      const activeId = selectedCourse || (courses.length > 0 ? courses[0].course_id : "");
+      if (!activeId) return;
+      const roster = await getCourseStudents(activeId);
       setStudents(roster);
       const initial: Record<string, any> = {};
       roster.forEach((s: any, idx: number) => {
@@ -42,7 +50,7 @@ export default function FacultyGradesPage() {
       setSuccessMessage(null);
     }
     load();
-  }, [selectedCourse]);
+  }, [selectedCourse, courses]);
 
   const handleScoreChange = (studentId: string, val: number) => {
     setScores((prev) => ({

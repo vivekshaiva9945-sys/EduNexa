@@ -24,7 +24,13 @@ export default function FacultyMaterialsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
-  const [targetCourse, setTargetCourse] = useState("crs-cs101");
+  const [targetCourse, setTargetCourse] = useState("");
+
+  React.useEffect(() => {
+    if (courses.length > 0 && (!targetCourse || targetCourse === "crs-cs101")) {
+      setTargetCourse(courses[0].course_id);
+    }
+  }, [courses, targetCourse]);
 
   const filtered =
     selectedCourse === "ALL"

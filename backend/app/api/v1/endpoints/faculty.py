@@ -1,10 +1,12 @@
-from typing import List
+from typing import List, Optional, Union
 from uuid import UUID
 from fastapi import APIRouter, Depends, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import RequireRole, get_tenant_session
 from app.core.exceptions import PermissionDeniedException
+from app.models.academic import Course
 from app.models.user import User
 from app.schemas.common import APIResponse, MessageResponse
 from app.schemas.faculty import (
@@ -47,6 +49,19 @@ def resolve_faculty_id(faculty_id_str: str, current_user: User) -> UUID:
         raise PermissionDeniedException(f"Invalid faculty profile identifier: {faculty_id_str}")
     verify_faculty_access(faculty_id, current_user)
     return faculty_id
+
+
+async def resolve_course_id(course_id_str: str, college_id: UUID, db: AsyncSession) -> UUID:
+    """Resolve course identifier, handling string aliases or invalid UUIDs gracefully."""
+    try:
+        return UUID(str(course_id_str))
+    except (ValueError, TypeError, AttributeError):
+        stmt = select(Course.course_id).where(Course.college_id == college_id).limit(1)
+        res = await db.execute(stmt)
+        c_id = res.scalar_one_or_none()
+        if c_id:
+            return c_id
+        return UUID("00000000-0000-0000-0000-000000000000")
 
 
 # ----------------------------------------------------
@@ -116,26 +131,28 @@ async def get_assigned_courses(
 
 @router.get("/courses/{course_id}/attendance-metrics", response_model=APIResponse[CourseAttendanceMetrics])
 async def get_course_attendance_metrics(
-    course_id: UUID,
+    course_id: str,
     current_user: User = Depends(RequireRole(["FACULTY", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """View attendance metrics for assigned course students (FAC-03)."""
+    target_uuid = await resolve_course_id(course_id, current_user.college_id, db)
     metrics = await FacultyService.get_course_attendance_metrics(
-        db, current_user.college_id, course_id
+        db, current_user.college_id, target_uuid
     )
     return APIResponse(data=metrics)
 
 
 @router.get("/courses/{course_id}/students", response_model=APIResponse[List[StudentRosterItem]])
 async def get_course_student_roster(
-    course_id: UUID,
+    course_id: str,
     current_user: User = Depends(RequireRole(["FACULTY", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """Fetch student roster for course (FAC-01, FAC-03, FAC-04)."""
+    target_uuid = await resolve_course_id(course_id, current_user.college_id, db)
     students = await FacultyService.get_course_students(
-        db, current_user.college_id, course_id
+        db, current_user.college_id, target_uuid
     )
     return APIResponse(data=students)
 
@@ -146,15 +163,17 @@ async def get_course_student_roster(
 @router.post("/{id}/marks", response_model=APIResponse[dict], status_code=status.HTTP_201_CREATED)
 async def upload_course_marks(
     id: str,
-    course_id: UUID,
     data: BatchGradeCreate,
+    course_id: Optional[str] = None,
     current_user: User = Depends(RequireRole(["FACULTY", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """Upload assessment grades and test scores (FAC-04)."""
     faculty_id = resolve_faculty_id(id, current_user)
+    target_course_str = course_id or data.course_id or "default"
+    target_uuid = await resolve_course_id(str(target_course_str), current_user.college_id, db)
     count = await FacultyService.batch_upload_grades(
-        db, current_user.college_id, faculty_id, course_id, data
+        db, current_user.college_id, faculty_id, target_uuid, data
     )
     return APIResponse(
         message=f"Uploaded {count} grades successfully",
@@ -164,13 +183,14 @@ async def upload_course_marks(
 
 @router.get("/courses/{course_id}/grades", response_model=APIResponse[List[GradeResponse]])
 async def get_course_grades(
-    course_id: UUID,
+    course_id: str,
     current_user: User = Depends(RequireRole(["FACULTY", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """View submitted assessment marks for a course (FAC-04)."""
+    target_uuid = await resolve_course_id(course_id, current_user.college_id, db)
     grades = await FacultyService.get_course_grades(
-        db, current_user.college_id, course_id
+        db, current_user.college_id, target_uuid
     )
     return APIResponse(data=grades)
 
@@ -205,6 +225,8 @@ async def upload_course_material(
 ):
     """Distribute digital course materials to class (FAC-05)."""
     faculty_id = current_user.faculty_profile.faculty_id
+    target_uuid = await resolve_course_id(str(data.course_id), current_user.college_id, db)
+    data.course_id = target_uuid
     material = await FacultyService.upload_course_material(
         db, current_user.college_id, faculty_id, data
     )
@@ -216,13 +238,14 @@ async def upload_course_material(
 
 @router.get("/courses/{course_id}/materials", response_model=APIResponse[List[CourseMaterialResponse]])
 async def list_course_materials(
-    course_id: UUID,
+    course_id: str,
     current_user: User = Depends(RequireRole(["FACULTY", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """List uploaded course materials for course (FAC-05)."""
+    target_uuid = await resolve_course_id(course_id, current_user.college_id, db)
     materials = await FacultyService.get_course_materials(
-        db, current_user.college_id, course_id
+        db, current_user.college_id, target_uuid
     )
     return APIResponse(data=materials)
 

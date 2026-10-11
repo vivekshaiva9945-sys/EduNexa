@@ -365,12 +365,21 @@ export const facultyApi = {
     facultyId: string = "me",
     payload: {
       course_id: string;
-      session_date: string;
+      session_date?: string;
+      date_recorded?: string;
       records: Array<{ student_id: string; status: string; remarks?: string }>;
     }
   ) => {
+    const formatted = {
+      course_id: payload.course_id,
+      date_recorded:
+        payload.date_recorded ||
+        payload.session_date ||
+        new Date().toISOString().split("T")[0],
+      records: payload.records,
+    };
     try {
-      const res = await apiClient.post(`/faculty/${facultyId}/attendance`, payload);
+      const res = await apiClient.post(`/faculty/${facultyId}/attendance`, formatted);
       return res.data;
     } catch {
       return { success: true, message: `Recorded attendance for ${payload.records.length} students` };
@@ -395,8 +404,23 @@ export const facultyApi = {
       grades: Array<{ student_id: string; score: number; remarks?: string }>;
     }
   ) => {
+    const formatted = {
+      course_id: payload.course_id,
+      assessment_name: payload.assessment_name,
+      max_score: payload.max_score,
+      grades: payload.grades.map((g) => ({
+        student_id: g.student_id,
+        assessment_name: payload.assessment_name,
+        score: g.score,
+        max_score: payload.max_score,
+        remarks: g.remarks,
+      })),
+    };
     try {
-      const res = await apiClient.post(`/faculty/${facultyId}/marks`, payload);
+      const res = await apiClient.post(
+        `/faculty/${facultyId}/marks?course_id=${payload.course_id}`,
+        formatted
+      );
       return res.data;
     } catch {
       return { success: true, message: "Grades published successfully" };
@@ -417,9 +441,19 @@ export const facultyApi = {
     title: string;
     description: string;
     file_type?: string;
+    file_url?: string;
   }) => {
+    const formatted = {
+      course_id: payload.course_id,
+      title: payload.title,
+      description: payload.description,
+      file_type: payload.file_type || "PDF",
+      file_url:
+        payload.file_url ||
+        "https://assets.edunexa.edu/materials/lecture-material.pdf",
+    };
     try {
-      const res = await apiClient.post("/faculty/materials", payload);
+      const res = await apiClient.post("/faculty/materials", formatted);
       return res.data.data;
     } catch {
       return {

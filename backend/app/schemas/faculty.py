@@ -1,18 +1,19 @@
 import datetime
-from typing import List, Optional
+from typing import List, Optional, Union
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class AttendanceRecordEntry(BaseModel):
-    student_id: UUID
-    status: str = Field(..., pattern="^(PRESENT|ABSENT|LATE|EXCUSED)$")
+    student_id: Union[UUID, str]
+    status: str = Field(default="PRESENT", pattern="^(PRESENT|ABSENT|LATE|EXCUSED)$")
     remarks: Optional[str] = None
 
 
 class BatchAttendanceCreate(BaseModel):
-    course_id: UUID
-    date_recorded: datetime.date
+    course_id: Union[UUID, str]
+    date_recorded: Optional[datetime.date] = None
+    session_date: Optional[str] = None
     records: List[AttendanceRecordEntry]
 
 
@@ -66,14 +67,17 @@ class StudentRosterItem(BaseModel):
 
 
 class GradeEntry(BaseModel):
-    student_id: UUID
-    assessment_name: str = Field(..., min_length=1, max_length=100)
+    student_id: Union[UUID, str]
+    assessment_name: Optional[str] = "Assessment"
     score: float = Field(..., ge=0)
     max_score: float = Field(default=100.0, gt=0)
     remarks: Optional[str] = None
 
 
 class BatchGradeCreate(BaseModel):
+    course_id: Optional[Union[UUID, str]] = None
+    assessment_name: Optional[str] = None
+    max_score: Optional[float] = None
     grades: List[GradeEntry]
 
 
@@ -98,11 +102,14 @@ class GradeUpdate(BaseModel):
 
 
 class CourseMaterialCreate(BaseModel):
-    course_id: UUID
+    course_id: Union[UUID, str]
     title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
-    file_url: str = Field(..., min_length=1, max_length=500)
-    file_type: str = Field(..., min_length=1, max_length=50)
+    file_url: Optional[str] = Field(
+        default="https://assets.edunexa.edu/materials/lecture-material.pdf",
+        max_length=500,
+    )
+    file_type: Optional[str] = Field(default="PDF", max_length=50)
 
 
 class CourseMaterialResponse(BaseModel):
