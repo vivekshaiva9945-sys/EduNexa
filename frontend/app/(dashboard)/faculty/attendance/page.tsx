@@ -42,8 +42,10 @@ export default function FacultyAttendancePage() {
       setStudents(roster);
       const initial: Record<string, any> = {};
       roster.forEach((s: any) => {
+        const valStatus =
+          s.status === "ABSENT" || s.status === "LATE" ? s.status : "PRESENT";
         initial[s.student_id] = {
-          status: s.status || "PRESENT",
+          status: valStatus,
           remarks: "",
         };
       });
@@ -93,8 +95,8 @@ export default function FacultyAttendancePage() {
     e.preventDefault();
     const records = Object.entries(attendanceState).map(([student_id, val]) => ({
       student_id,
-      status: val.status,
-      remarks: val.remarks,
+      status: val.status === "ABSENT" || val.status === "LATE" ? val.status : "PRESENT",
+      remarks: val.remarks || "",
     }));
 
     await submitAttendance({

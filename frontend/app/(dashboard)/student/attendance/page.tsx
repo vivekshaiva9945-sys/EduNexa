@@ -102,39 +102,45 @@ export default function StudentAttendancePage() {
                     Date-By-Date Session History
                   </h4>
                   <div className="divide-y divide-slate-100 rounded-lg border border-slate-200/60 bg-white">
-                    {sub.logs.map((log: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between p-3 text-xs"
-                      >
-                        <div className="flex items-center gap-3">
-                          {getStatusIcon(log.status)}
-                          <div>
-                            <span className="font-medium text-slate-800">
-                              {log.date}
-                            </span>
-                            {log.remarks && (
-                              <p className="text-[11px] text-slate-400">
-                                {log.remarks}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <Badge
-                          variant={
-                            log.status === "PRESENT"
-                              ? "success"
-                              : log.status === "ABSENT"
-                              ? "destructive"
-                              : "warning"
-                          }
-                          className="text-[10px]"
+                    {sub.logs && sub.logs.length > 0 ? (
+                      sub.logs.map((log: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-3 text-xs"
                         >
-                          {log.status}
-                        </Badge>
+                          <div className="flex items-center gap-3">
+                            {getStatusIcon(log.status)}
+                            <div>
+                              <span className="font-medium text-slate-800">
+                                {log.date}
+                              </span>
+                              {log.remarks && (
+                                <p className="text-[11px] text-slate-400">
+                                  {log.remarks}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <Badge
+                            variant={
+                              log.status === "PRESENT"
+                                ? "success"
+                                : log.status === "ABSENT"
+                                ? "destructive"
+                                : "warning"
+                            }
+                            className="text-[10px]"
+                          >
+                            {log.status}
+                          </Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-xs text-slate-400">
+                        No individual session logs recorded for this course yet.
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               )}

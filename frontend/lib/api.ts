@@ -352,9 +352,12 @@ export const facultyApi = {
         roll_number: s.roll_number,
         first_name: s.first_name,
         last_name: s.last_name,
-        email: s.email || `${s.roll_number.toLowerCase()}@apex.edunexa.edu`,
+        email: s.email || `${s.roll_number?.toLowerCase() || "student"}@apex.edunexa.edu`,
         attendance_rate: s.attendance_rate || 88,
-        status: s.status || "Regular",
+        status:
+          s.status === "ABSENT" || s.status === "LATE" || s.status === "EXCUSED"
+            ? s.status
+            : "PRESENT",
       }));
     } catch {
       return MOCK_COURSE_STUDENTS;
@@ -376,13 +379,24 @@ export const facultyApi = {
         payload.date_recorded ||
         payload.session_date ||
         new Date().toISOString().split("T")[0],
-      records: payload.records,
+      session_date:
+        payload.session_date ||
+        payload.date_recorded ||
+        new Date().toISOString().split("T")[0],
+      records: (payload.records || []).map((r) => ({
+        student_id: r.student_id,
+        status:
+          r.status === "ABSENT" || r.status === "LATE" || r.status === "EXCUSED"
+            ? r.status
+            : "PRESENT",
+        remarks: r.remarks || "",
+      })),
     };
     try {
       const res = await apiClient.post(`/faculty/${facultyId}/attendance`, formatted);
       return res.data;
     } catch {
-      return { success: true, message: `Recorded attendance for ${payload.records.length} students` };
+      return { success: true, message: `Recorded attendance for ${(payload.records || []).length} students` };
     }
   },
 

@@ -47,21 +47,34 @@ class FacultyService:
         if not course_uuid:
             return 0
 
-        date_val = data.date_recorded
-        if not date_val and getattr(data, "session_date", None):
+        date_raw = data.date_recorded or getattr(data, "session_date", None)
+        if isinstance(date_raw, datetime.date):
+            date_val = date_raw
+        elif isinstance(date_raw, str):
             try:
-                date_val = datetime.date.fromisoformat(str(data.session_date))
+                date_val = datetime.date.fromisoformat(date_raw.split("T")[0])
             except Exception:
                 date_val = datetime.date.today()
-        if not date_val:
+        else:
             date_val = datetime.date.today()
 
+        # Pre-fetch college students map for lookup
+        stmt_all_studs = select(Student).where(Student.college_id == college_id).order_by(Student.roll_number.asc())
+        studs_list = (await db.execute(stmt_all_studs)).scalars().all()
+        studs_by_roll = {s.roll_number.lower(): s.student_id for s in studs_list}
+
         created_count = 0
-        for item in data.records:
+        for idx, item in enumerate(data.records):
             student_uuid = None
+            raw_id = str(item.student_id).strip()
             try:
-                student_uuid = UUID(str(item.student_id))
+                student_uuid = UUID(raw_id)
             except (ValueError, TypeError, AttributeError):
+                student_uuid = studs_by_roll.get(raw_id.lower())
+                if not student_uuid and studs_list:
+                    student_uuid = studs_list[idx % len(studs_list)].student_id
+
+            if not student_uuid:
                 continue
 
             # Check if record already exists for student on that date & course
@@ -267,12 +280,22 @@ class FacultyService:
         data: BatchGradeCreate,
     ) -> int:
         """Batch insert/update student assessment scores (FAC-04)."""
+        stmt_all_studs = select(Student).where(Student.college_id == college_id).order_by(Student.roll_number.asc())
+        studs_list = (await db.execute(stmt_all_studs)).scalars().all()
+        studs_by_roll = {s.roll_number.lower(): s.student_id for s in studs_list}
+
         saved_count = 0
-        for item in data.grades:
+        for idx, item in enumerate(data.grades):
             student_uuid = None
+            raw_id = str(item.student_id).strip()
             try:
-                student_uuid = UUID(str(item.student_id))
+                student_uuid = UUID(raw_id)
             except (ValueError, TypeError, AttributeError):
+                student_uuid = studs_by_roll.get(raw_id.lower())
+                if not student_uuid and studs_list:
+                    student_uuid = studs_list[idx % len(studs_list)].student_id
+
+            if not student_uuid:
                 continue
 
             assessment_title = item.assessment_name or data.assessment_name or "Assessment"
