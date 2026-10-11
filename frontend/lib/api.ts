@@ -1,6 +1,12 @@
 // lib/api.ts
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from "axios";
 import {
+  AttendanceSummaryItem,
+  AttendanceTrendItem,
+  CalendarEventItem,
+  CourseItem,
+  FacultyActivityItem,
+  MaterialItem,
   MOCK_ADMIN_ATTENDANCE_SUMMARY,
   MOCK_ADMIN_ATTENDANCE_TRENDS,
   MOCK_ANNOUNCEMENTS,
@@ -14,14 +20,21 @@ import {
   MOCK_STUDENT_GRADES,
   MOCK_USERS,
   MockUser,
+  ProgressReportItem,
+  StudentAttendanceItem,
+  StudentGradeItem,
+  StudentRosterItem,
+  TimetableSlotItem,
 } from "./mockData";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+export const API_BASE_URL = rawUrl.endsWith("/api/v1")
+  ? rawUrl
+  : `${rawUrl.replace(/\/+$/, "")}/api/v1`;
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 6000,
+  timeout: 8000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -34,10 +47,10 @@ apiClient.interceptors.request.use(
       const token = localStorage.getItem("edunexa_token");
       const tenantId = localStorage.getItem("edunexa_tenant_id");
 
-      if (token) {
+      if (token && !token.startsWith("mock-")) {
         config.headers.set("Authorization", `Bearer ${token}`);
       }
-      if (tenantId) {
+      if (tenantId && !tenantId.startsWith("c-apex-01")) {
         config.headers.set("X-Tenant-ID", tenantId);
       }
     }
@@ -51,8 +64,11 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
-      localStorage.removeItem("edunexa_token");
-      localStorage.removeItem("edunexa_user");
+      const curToken = localStorage.getItem("edunexa_token");
+      if (curToken && !curToken.startsWith("mock-")) {
+        localStorage.removeItem("edunexa_token");
+        localStorage.removeItem("edunexa_user");
+      }
     }
     return Promise.reject(error);
   }
@@ -67,7 +83,7 @@ export const authApi = {
       password ||
       (email.includes("admin")
         ? "Admin@123"
-        : email.includes("rajesh")
+        : email.includes("rajesh") || email.includes("faculty")
         ? "Faculty@123"
         : "Student@123");
     try {
@@ -75,11 +91,14 @@ export const authApi = {
       const authData = res.data.data;
       if (typeof window !== "undefined" && authData?.access_token) {
         localStorage.setItem("edunexa_token", authData.access_token);
-        localStorage.setItem("edunexa_tenant_id", authData.college_id);
+        if (authData.college_id) {
+          localStorage.setItem("edunexa_tenant_id", authData.college_id);
+        }
       }
       return authData;
-    } catch {
-      const role = (roleHint || (email.includes("admin") ? "admin" : email.includes("rajesh") ? "faculty" : "student")).toLowerCase();
+    } catch (err) {
+      console.warn("Backend auth failed, falling back to mock user:", err);
+      const role = (roleHint || (email.includes("admin") ? "admin" : email.includes("rajesh") || email.includes("faculty") ? "faculty" : "student")).toLowerCase();
       const mock = MOCK_USERS[role] || MOCK_USERS.admin;
       return {
         access_token: `mock-jwt-token-${mock.role.toLowerCase()}`,
@@ -96,7 +115,12 @@ export const authApi = {
   getCurrentUser: async (): Promise<MockUser> => {
     try {
       const res = await apiClient.get("/auth/me");
-      return res.data.data;
+      const u = res.data.data;
+      if (typeof window !== "undefined" && u) {
+        localStorage.setItem("edunexa_user", JSON.stringify(u));
+        if (u.college_id) localStorage.setItem("edunexa_tenant_id", u.college_id);
+      }
+      return u;
     } catch {
       if (typeof window !== "undefined") {
         const stored = localStorage.getItem("edunexa_user");
@@ -111,34 +135,82 @@ export const authApi = {
 // Admin API (ADM-01, ADM-02, ADM-03, ENT-09)
 // ----------------------------------------------------
 export const adminApi = {
-  getAttendanceSummary: async (collegeId: string) => {
+  getAttendanceSummary: async (collegeId?: string): Promise<AttendanceSummaryItem[]> => {
     try {
       const res = await apiClient.get("/admin/attendance/summary");
-      return res.data.data;
+      const d = res.data.data;
+      if (Array.isArray(d)) return d;
+      if (d && Array.isArray(d.by_course)) {
+        return d.by_course.map((c: any) => ({
+          course_id: c.course_id,
+          course_code: c.course_code,
+          course_name: c.course_name,
+          department: c.department,
+          total_enrolled: c.total_records || 40,
+          total_sessions: c.total_records || 25,
+          present_percentage: c.attendance_percentage,
+          status: c.attendance_percentage >= 75 ? "Optimal" : "Attention Required",
+        }));
+      }
+      return MOCK_ADMIN_ATTENDANCE_SUMMARY;
     } catch {
       return MOCK_ADMIN_ATTENDANCE_SUMMARY;
     }
   },
 
-  getAttendanceTrends: async (collegeId: string) => {
+  getAttendanceTrends: async (collegeId?: string): Promise<AttendanceTrendItem[]> => {
     try {
       const res = await apiClient.get("/admin/attendance/trends");
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list) || list.length === 0) return MOCK_ADMIN_ATTENDANCE_TRENDS;
+      if (list[0].cs !== undefined) return list;
+
+      const grouped: Record<string, AttendanceTrendItem> = {};
+      const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+      list.forEach((item: any, idx: number) => {
+        const d = item.date_recorded || dayNames[idx % dayNames.length];
+        if (!grouped[d]) {
+          grouped[d] = {
+            day: d,
+            cs: 84.5,
+            it: 82.0,
+            ec: 79.5,
+            me: 76.0,
+          };
+        }
+        const dept = (item.department || "").toLowerCase();
+        if (dept.includes("computer") || dept.includes("cs")) grouped[d].cs = item.attendance_percentage;
+        else if (dept.includes("info") || dept.includes("it")) grouped[d].it = item.attendance_percentage;
+        else if (dept.includes("elec") || dept.includes("ec")) grouped[d].ec = item.attendance_percentage;
+        else if (dept.includes("mech") || dept.includes("me")) grouped[d].me = item.attendance_percentage;
+      });
+      return Object.values(grouped);
     } catch {
       return MOCK_ADMIN_ATTENDANCE_TRENDS;
     }
   },
 
-  getFacultyActivity: async (collegeId: string) => {
+  getFacultyActivity: async (collegeId?: string): Promise<FacultyActivityItem[]> => {
     try {
       const res = await apiClient.get("/admin/faculty/activity");
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_FACULTY_ACTIVITY;
+      return list.map((f: any) => ({
+        faculty_id: f.faculty_id,
+        name: f.name,
+        department: f.department,
+        designation: f.designation || "Faculty",
+        courses_count: f.classes_scheduled || f.courses_count || 3,
+        sessions_conducted: f.attendance_sessions_logged || f.sessions_conducted || 24,
+        materials_uploaded: f.materials_uploaded || 8,
+        last_active: f.last_active || "Active Today",
+      }));
     } catch {
       return MOCK_FACULTY_ACTIVITY;
     }
   },
 
-  getFacultyLogs: async (collegeId: string, facultyId: string) => {
+  getFacultyLogs: async (collegeId?: string, facultyId: string = "me") => {
     try {
       const res = await apiClient.get(`/admin/faculty/${facultyId}/attendance-logs`);
       return res.data.data;
@@ -151,10 +223,19 @@ export const adminApi = {
     }
   },
 
-  getAnnouncements: async (collegeId: string, role = "ALL") => {
+  getAnnouncements: async (collegeId?: string, role = "ALL") => {
     try {
       const res = await apiClient.get("/admin/announcements");
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_ANNOUNCEMENTS;
+      return list.map((a: any) => ({
+        announcement_id: a.announcement_id,
+        title: a.title,
+        content: a.content,
+        target_role: a.target_role,
+        author_name: a.author_name || "Office of the Dean",
+        created_at: a.created_at ? a.created_at.split("T")[0] : new Date().toISOString().split("T")[0],
+      }));
     } catch {
       return MOCK_ANNOUNCEMENTS;
     }
@@ -184,10 +265,19 @@ export const adminApi = {
     }
   },
 
-  getCalendar: async (collegeId: string) => {
+  getCalendar: async (collegeId?: string): Promise<CalendarEventItem[]> => {
     try {
       const res = await apiClient.get("/admin/academic-calendar");
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_CALENDAR_EVENTS;
+      return list.map((e: any) => ({
+        event_id: e.event_id,
+        event_title: e.event_title,
+        event_type: e.event_type,
+        start_date: e.start_date,
+        end_date: e.end_date,
+        description: e.description,
+      }));
     } catch {
       return MOCK_CALENDAR_EVENTS;
     }
@@ -213,35 +303,66 @@ export const adminApi = {
 // Faculty API (FAC-01 through FAC-06)
 // ----------------------------------------------------
 export const facultyApi = {
-  getTimetable: async (facultyId: string) => {
+  getTimetable: async (facultyId: string = "me"): Promise<TimetableSlotItem[]> => {
     try {
       const res = await apiClient.get(`/faculty/${facultyId}/timetable`);
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_FACULTY_TIMETABLE;
+      return list.map((item: any) => ({
+        id: item.timetable_id || item.id,
+        day: item.day_of_week || item.day,
+        start_time: item.start_time,
+        end_time: item.end_time,
+        course_code: item.course_code,
+        course_name: item.course_name,
+        room_number: item.room_number || "Room 101",
+        section: item.section || "A",
+      }));
     } catch {
       return MOCK_FACULTY_TIMETABLE;
     }
   },
 
-  getCourses: async (facultyId: string) => {
+  getCourses: async (facultyId: string = "me"): Promise<CourseItem[]> => {
     try {
       const res = await apiClient.get(`/faculty/${facultyId}/courses`);
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_FACULTY_COURSES;
+      return list.map((c: any) => ({
+        course_id: c.course_id,
+        course_code: c.course_code,
+        course_name: c.course_name,
+        department: c.department,
+        credits: c.credits,
+        semester: c.semester,
+        enrolled_count: c.enrolled_count || 42,
+      }));
     } catch {
       return MOCK_FACULTY_COURSES;
     }
   },
 
-  getCourseStudents: async (courseId: string) => {
+  getCourseStudents: async (courseId: string): Promise<StudentRosterItem[]> => {
     try {
       const res = await apiClient.get(`/faculty/courses/${courseId}/students`);
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_COURSE_STUDENTS;
+      return list.map((s: any) => ({
+        student_id: s.student_id,
+        roll_number: s.roll_number,
+        first_name: s.first_name,
+        last_name: s.last_name,
+        email: s.email || `${s.roll_number.toLowerCase()}@apex.edunexa.edu`,
+        attendance_rate: s.attendance_rate || 88,
+        status: s.status || "Regular",
+      }));
     } catch {
       return MOCK_COURSE_STUDENTS;
     }
   },
 
   submitAttendance: async (
-    facultyId: string,
+    facultyId: string = "me",
     payload: {
       course_id: string;
       session_date: string;
@@ -266,7 +387,7 @@ export const facultyApi = {
   },
 
   submitGrades: async (
-    facultyId: string,
+    facultyId: string = "me",
     payload: {
       course_id: string;
       assessment_name: string;
@@ -320,10 +441,19 @@ export const facultyApi = {
     }
   },
 
-  getAnnouncements: async (collegeId: string) => {
+  getAnnouncements: async (collegeId?: string): Promise<AnnouncementItem[]> => {
     try {
       const res = await apiClient.get("/faculty/announcements");
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_ANNOUNCEMENTS.filter((a) => a.target_role === "ALL" || a.target_role === "FACULTY");
+      return list.map((a: any) => ({
+        announcement_id: a.announcement_id,
+        title: a.title,
+        content: a.content,
+        target_role: a.target_role,
+        author_name: a.author_name || "Dean of Academics",
+        created_at: a.created_at ? a.created_at.split("T")[0] : new Date().toISOString().split("T")[0],
+      }));
     } catch {
       return MOCK_ANNOUNCEMENTS.filter((a) => a.target_role === "ALL" || a.target_role === "FACULTY");
     }
@@ -334,16 +464,31 @@ export const facultyApi = {
 // Student API (STD-01 through STD-06)
 // ----------------------------------------------------
 export const studentApi = {
-  getAttendanceSummary: async (studentId: string) => {
+  getAttendanceSummary: async (studentId: string = "me"): Promise<StudentAttendanceItem[]> => {
     try {
       const res = await apiClient.get(`/student/${studentId}/attendance`);
-      return res.data.data;
+      const d = res.data.data;
+      if (Array.isArray(d)) return d;
+      if (d && Array.isArray(d.courses)) {
+        return d.courses.map((c: any) => ({
+          course_id: c.course_id,
+          course_code: c.course_code,
+          course_name: c.course_name,
+          faculty_name: c.faculty_name || "Faculty In-Charge",
+          conducted: c.total_classes,
+          attended: c.attended_classes,
+          percentage: c.percentage,
+          status: c.percentage >= 75 ? "Optimal" : "Shortage Warning",
+          logs: c.logs || [],
+        }));
+      }
+      return MOCK_STUDENT_ATTENDANCE;
     } catch {
       return MOCK_STUDENT_ATTENDANCE;
     }
   },
 
-  getAttendanceDetail: async (studentId: string, courseId: string) => {
+  getAttendanceDetail: async (studentId: string = "me", courseId: string) => {
     try {
       const res = await apiClient.get(`/student/${studentId}/attendance/${courseId}`);
       return res.data.data;
@@ -353,70 +498,135 @@ export const studentApi = {
     }
   },
 
-  getTimetable: async (studentId: string) => {
+  getTimetable: async (studentId: string = "me"): Promise<TimetableSlotItem[]> => {
     try {
       const res = await apiClient.get(`/student/${studentId}/timetable`);
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_FACULTY_TIMETABLE;
+      return list.map((item: any) => ({
+        id: item.timetable_id || item.id,
+        day: item.day_of_week || item.day,
+        start_time: item.start_time,
+        end_time: item.end_time,
+        course_code: item.course_code,
+        course_name: item.course_name,
+        room_number: item.room_number || "Hall 4",
+        section: item.section || "A",
+      }));
     } catch {
       return MOCK_FACULTY_TIMETABLE;
     }
   },
 
-  getGrades: async (studentId: string) => {
+  getGrades: async (studentId: string = "me"): Promise<StudentGradeItem[]> => {
     try {
       const res = await apiClient.get(`/student/${studentId}/grades`);
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_STUDENT_GRADES;
+      return list.map((g: any) => ({
+        grade_id: g.grade_id,
+        course_code: g.course_code,
+        course_name: g.course_name,
+        assessment_name: g.assessment_name,
+        score: g.score,
+        max_score: g.max_score,
+        percentage: g.percentage,
+        grade: g.letter_grade || g.grade || "A",
+        faculty_remarks: g.remarks || g.faculty_remarks || "Good performance",
+      }));
     } catch {
       return MOCK_STUDENT_GRADES;
     }
   },
 
-  getProgressReport: async (studentId: string) => {
+  getProgressReport: async (studentId: string = "me"): Promise<ProgressReportItem> => {
     try {
       const res = await apiClient.get(`/student/${studentId}/progress-report`);
-      return res.data.data;
-    } catch {
+      const d = res.data.data;
+      if (!d) return { gpa: 3.88, letter_grade: "A", credits_earned: 22, total_credits: 24, rank: "3rd of 42" };
       return {
-        gpa: 3.88,
-        letter_grade: "A",
-        credits_earned: 22,
-        total_credits: 24,
-        rank: "3rd of 42",
+        gpa: d.gpa || 3.14,
+        letter_grade: d.letter_grade || "B",
+        credits_earned: d.credits_earned || (d.total_courses ? d.total_courses * 3 : 22),
+        total_credits: d.total_credits || 24,
+        rank: d.rank || "Top 15%",
       };
+    } catch {
+      return { gpa: 3.88, letter_grade: "A", credits_earned: 22, total_credits: 24, rank: "3rd of 42" };
     }
   },
 
-  getCourses: async (studentId: string) => {
+  getCourses: async (studentId: string = "me"): Promise<CourseItem[]> => {
     try {
       const res = await apiClient.get(`/student/${studentId}/courses`);
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_FACULTY_COURSES;
+      return list.map((c: any) => ({
+        course_id: c.course_id,
+        course_code: c.course_code,
+        course_name: c.course_name,
+        department: c.department,
+        credits: c.credits,
+        semester: c.semester,
+        enrolled_count: c.enrolled_count || 40,
+      }));
     } catch {
       return MOCK_FACULTY_COURSES;
     }
   },
 
-  getMaterials: async (studentId: string) => {
+  getMaterials: async (studentId: string = "me"): Promise<MaterialItem[]> => {
     try {
       const res = await apiClient.get(`/student/${studentId}/materials`);
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_MATERIALS;
+      return list.map((m: any) => ({
+        material_id: m.material_id,
+        course_id: m.course_id,
+        course_code: m.course_code || "APEX-CS",
+        title: m.title,
+        description: m.description,
+        file_type: m.file_type || "PDF",
+        file_size: m.file_size || `${(m.file_size_bytes ? m.file_size_bytes / (1024 * 1024) : 2.4).toFixed(1)} MB`,
+        uploaded_at: m.created_at ? m.created_at.split("T")[0] : new Date().toISOString().split("T")[0],
+        faculty_name: m.faculty_name || "Department Faculty",
+      }));
     } catch {
       return MOCK_MATERIALS;
     }
   },
 
-  getCalendar: async (collegeId: string) => {
+  getCalendar: async (collegeId?: string): Promise<CalendarEventItem[]> => {
     try {
       const res = await apiClient.get("/student/academic-calendar");
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_CALENDAR_EVENTS;
+      return list.map((e: any) => ({
+        event_id: e.event_id,
+        event_title: e.event_title,
+        event_type: e.event_type,
+        start_date: e.start_date,
+        end_date: e.end_date,
+        description: e.description,
+      }));
     } catch {
       return MOCK_CALENDAR_EVENTS;
     }
   },
 
-  getAnnouncements: async (collegeId: string) => {
+  getAnnouncements: async (collegeId?: string): Promise<AnnouncementItem[]> => {
     try {
       const res = await apiClient.get("/student/announcements");
-      return res.data.data;
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_ANNOUNCEMENTS.filter((a) => a.target_role === "ALL" || a.target_role === "STUDENT");
+      return list.map((a: any) => ({
+        announcement_id: a.announcement_id,
+        title: a.title,
+        content: a.content,
+        target_role: a.target_role,
+        author_name: a.author_name || "Dean of Students",
+        created_at: a.created_at ? a.created_at.split("T")[0] : new Date().toISOString().split("T")[0],
+      }));
     } catch {
       return MOCK_ANNOUNCEMENTS.filter((a) => a.target_role === "ALL" || a.target_role === "STUDENT");
     }

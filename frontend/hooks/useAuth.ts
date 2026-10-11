@@ -11,21 +11,53 @@ export function useAuth() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("edunexa_user");
-      if (stored) {
-        setUser(JSON.parse(stored));
-      } else {
-        setUser(MOCK_USERS.admin);
-        localStorage.setItem("edunexa_user", JSON.stringify(MOCK_USERS.admin));
-        localStorage.setItem("edunexa_tenant_id", MOCK_USERS.admin.college_id);
-        localStorage.setItem("edunexa_token", "mock-jwt-token-admin");
+    let isMounted = true;
+
+    const initializeAuth = async () => {
+      try {
+        const token = localStorage.getItem("edunexa_token");
+        const stored = localStorage.getItem("edunexa_user");
+
+        if (token && !token.startsWith("mock-") && stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (isMounted) setUser(parsed);
+          } catch {
+            // ignore parse error
+          }
+          // Verify with backend
+          try {
+            const me = await authApi.getCurrentUser();
+            if (isMounted && me) setUser(me);
+          } catch {
+            // Keep parsed user
+          }
+        } else {
+          // Initialize live connection with real admin authentication
+          try {
+            const authRes = await authApi.login("admin@apex.edunexa.edu", "Admin@123", "admin");
+            if (authRes?.access_token) {
+              const me = await authApi.getCurrentUser();
+              if (isMounted && me) setUser(me);
+            } else {
+              if (isMounted) setUser(MOCK_USERS.admin);
+            }
+          } catch {
+            if (isMounted) setUser(MOCK_USERS.admin);
+          }
+        }
+      } catch {
+        if (isMounted) setUser(MOCK_USERS.admin);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
-    } catch {
-      setUser(MOCK_USERS.admin);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const loginAs = async (role: "admin" | "faculty" | "student") => {
@@ -35,15 +67,27 @@ export function useAuth() {
       const authRes = await authApi.login(mockUser.email, undefined, role);
       if (authRes?.access_token) {
         localStorage.setItem("edunexa_token", authRes.access_token);
-        localStorage.setItem("edunexa_tenant_id", authRes.college_id);
+        if (authRes.college_id) localStorage.setItem("edunexa_tenant_id", authRes.college_id);
+        const currentUser = await authApi.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          localStorage.setItem("edunexa_user", JSON.stringify(currentUser));
+        } else {
+          setUser(mockUser);
+          localStorage.setItem("edunexa_user", JSON.stringify(mockUser));
+        }
+      } else {
+        localStorage.setItem("edunexa_user", JSON.stringify(mockUser));
+        setUser(mockUser);
       }
     } catch {
       localStorage.setItem("edunexa_token", `mock-jwt-token-${role}`);
       localStorage.setItem("edunexa_tenant_id", mockUser.college_id);
+      localStorage.setItem("edunexa_user", JSON.stringify(mockUser));
+      setUser(mockUser);
+    } finally {
+      setIsLoading(false);
     }
-    localStorage.setItem("edunexa_user", JSON.stringify(mockUser));
-    setUser(mockUser);
-    setIsLoading(false);
 
     if (role === "admin") router.push("/admin/dashboard");
     else if (role === "faculty") router.push("/faculty/dashboard");

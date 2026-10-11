@@ -119,12 +119,16 @@ async def get_faculty_activity(
 
 @router.get("/faculty/{id}/attendance-logs", response_model=APIResponse[List[FacultyAttendanceLogItem]])
 async def get_faculty_attendance_logs(
-    id: UUID,
+    id: str,
     current_user: User = Depends(RequireRole(["ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """View attendance logging history for a specific faculty member (ADM-03)."""
-    data = await AdminService.get_faculty_attendance_logs(db, current_user.college_id, id)
+    try:
+        faculty_uuid = UUID(str(id))
+    except (ValueError, AttributeError):
+        return APIResponse(data=[])
+    data = await AdminService.get_faculty_attendance_logs(db, current_user.college_id, faculty_uuid)
     return APIResponse(data=data)
 
 

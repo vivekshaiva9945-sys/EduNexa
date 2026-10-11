@@ -10,25 +10,31 @@ import {
   StudentRosterItem,
 } from "@/lib/mockData";
 
-export function useFaculty(facultyId: string = "fac-001", collegeId: string = "c-apex-01") {
+export function useFaculty(facultyId?: string, collegeId?: string) {
   const queryClient = useQueryClient();
+  const activeFacultyId = facultyId || "me";
+  const activeCollegeId =
+    collegeId ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem("edunexa_tenant_id") || "c-apex-01"
+      : "c-apex-01");
 
   // FAC-02: Timetable
   const timetableQuery = useQuery<TimetableSlotItem[]>({
-    queryKey: queryKeys.faculty.timetable(facultyId),
-    queryFn: () => facultyApi.getTimetable(facultyId),
+    queryKey: queryKeys.faculty.timetable(activeFacultyId),
+    queryFn: () => facultyApi.getTimetable(activeFacultyId),
   });
 
   // FAC-02, FAC-03: Courses
   const coursesQuery = useQuery<CourseItem[]>({
-    queryKey: queryKeys.faculty.courses(facultyId),
-    queryFn: () => facultyApi.getCourses(facultyId),
+    queryKey: queryKeys.faculty.courses(activeFacultyId),
+    queryFn: () => facultyApi.getCourses(activeFacultyId),
   });
 
   // FAC-06: Announcements
   const announcementsQuery = useQuery<AnnouncementItem[]>({
-    queryKey: queryKeys.faculty.announcements(collegeId),
-    queryFn: () => facultyApi.getAnnouncements(collegeId),
+    queryKey: queryKeys.faculty.announcements(activeCollegeId),
+    queryFn: () => facultyApi.getAnnouncements(activeCollegeId),
   });
 
   const getCourseStudents = (courseId: string): Promise<StudentRosterItem[]> =>
@@ -40,13 +46,13 @@ export function useFaculty(facultyId: string = "fac-001", collegeId: string = "c
       course_id: string;
       session_date: string;
       records: Array<{ student_id: string; status: string; remarks?: string }>;
-    }) => facultyApi.submitAttendance(facultyId, payload),
+    }) => facultyApi.submitAttendance(activeFacultyId, payload),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.faculty.courseMetrics(variables.course_id),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.admin.attendanceSummary(collegeId),
+        queryKey: queryKeys.admin.attendanceSummary(activeCollegeId),
       });
     },
   });
@@ -58,7 +64,7 @@ export function useFaculty(facultyId: string = "fac-001", collegeId: string = "c
       assessment_name: string;
       max_score: number;
       grades: Array<{ student_id: string; score: number; remarks?: string }>;
-    }) => facultyApi.submitGrades(facultyId, payload),
+    }) => facultyApi.submitGrades(activeFacultyId, payload),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.faculty.grades(variables.course_id),

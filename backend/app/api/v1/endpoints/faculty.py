@@ -33,20 +33,36 @@ def verify_faculty_access(faculty_id: UUID, current_user: User):
             raise PermissionDeniedException("Cannot operate on another faculty member's profile")
 
 
+def resolve_faculty_id(faculty_id_str: str, current_user: User) -> UUID:
+    """Resolve faculty profile ID, supporting 'me', 'fac-001', or explicit UUID."""
+    val = str(faculty_id_str).strip().lower()
+    if val in ("me", "current", "fac-001") or not val:
+        if current_user.faculty_profile:
+            return current_user.faculty_profile.faculty_id
+    try:
+        faculty_id = UUID(str(faculty_id_str))
+    except (ValueError, AttributeError):
+        if current_user.faculty_profile:
+            return current_user.faculty_profile.faculty_id
+        raise PermissionDeniedException(f"Invalid faculty profile identifier: {faculty_id_str}")
+    verify_faculty_access(faculty_id, current_user)
+    return faculty_id
+
+
 # ----------------------------------------------------
 # FAC-01 & FAC-03: Attendance Operations
 # ----------------------------------------------------
 @router.post("/{id}/attendance", response_model=APIResponse[dict], status_code=status.HTTP_201_CREATED)
 async def record_attendance_batch(
-    id: UUID,
+    id: str,
     data: BatchAttendanceCreate,
     current_user: User = Depends(RequireRole(["FACULTY", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """Record daily attendance for assigned course sections (FAC-01)."""
-    verify_faculty_access(id, current_user)
+    faculty_id = resolve_faculty_id(id, current_user)
     count = await FacultyService.batch_record_attendance(
-        db, current_user.college_id, id, data
+        db, current_user.college_id, faculty_id, data
     )
     return APIResponse(
         message=f"Successfully recorded attendance for {count} students",
@@ -76,25 +92,25 @@ async def update_attendance_log(
 # ----------------------------------------------------
 @router.get("/{id}/timetable", response_model=APIResponse[List[TimetableSlotResponse]])
 async def get_teaching_timetable(
-    id: UUID,
+    id: str,
     current_user: User = Depends(RequireRole(["FACULTY", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """Access personal teaching schedule (FAC-02)."""
-    verify_faculty_access(id, current_user)
-    slots = await FacultyService.get_faculty_timetable(db, current_user.college_id, id)
+    faculty_id = resolve_faculty_id(id, current_user)
+    slots = await FacultyService.get_faculty_timetable(db, current_user.college_id, faculty_id)
     return APIResponse(data=slots)
 
 
 @router.get("/{id}/courses", response_model=APIResponse[List[AssignedCourseResponse]])
 async def get_assigned_courses(
-    id: UUID,
+    id: str,
     current_user: User = Depends(RequireRole(["FACULTY", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """List assigned courses and active sections (FAC-02, FAC-03)."""
-    verify_faculty_access(id, current_user)
-    courses = await FacultyService.get_assigned_courses(db, current_user.college_id, id)
+    faculty_id = resolve_faculty_id(id, current_user)
+    courses = await FacultyService.get_assigned_courses(db, current_user.college_id, faculty_id)
     return APIResponse(data=courses)
 
 
@@ -129,16 +145,16 @@ async def get_course_student_roster(
 # ----------------------------------------------------
 @router.post("/{id}/marks", response_model=APIResponse[dict], status_code=status.HTTP_201_CREATED)
 async def upload_course_marks(
-    id: UUID,
+    id: str,
     course_id: UUID,
     data: BatchGradeCreate,
     current_user: User = Depends(RequireRole(["FACULTY", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """Upload assessment grades and test scores (FAC-04)."""
-    verify_faculty_access(id, current_user)
+    faculty_id = resolve_faculty_id(id, current_user)
     count = await FacultyService.batch_upload_grades(
-        db, current_user.college_id, id, course_id, data
+        db, current_user.college_id, faculty_id, course_id, data
     )
     return APIResponse(
         message=f"Uploaded {count} grades successfully",

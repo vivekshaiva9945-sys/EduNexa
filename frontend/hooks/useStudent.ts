@@ -13,40 +13,47 @@ import {
   AnnouncementItem,
 } from "@/lib/mockData";
 
-export function useStudent(studentId: string = "std-001", collegeId: string = "c-apex-01") {
+export function useStudent(studentId?: string, collegeId?: string) {
+  const activeStudentId = studentId || "me";
+  const activeCollegeId =
+    collegeId ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem("edunexa_tenant_id") || "c-apex-01"
+      : "c-apex-01");
+
   const attendanceQuery = useQuery<StudentAttendanceItem[]>({
-    queryKey: queryKeys.student.attendanceSummary(studentId),
-    queryFn: () => studentApi.getAttendanceSummary(studentId),
+    queryKey: queryKeys.student.attendanceSummary(activeStudentId),
+    queryFn: () => studentApi.getAttendanceSummary(activeStudentId),
   });
 
   const timetableQuery = useQuery<TimetableSlotItem[]>({
-    queryKey: queryKeys.student.timetable(studentId),
-    queryFn: () => studentApi.getTimetable(studentId),
+    queryKey: queryKeys.student.timetable(activeStudentId),
+    queryFn: () => studentApi.getTimetable(activeStudentId),
   });
 
   const gradesQuery = useQuery<StudentGradeItem[]>({
-    queryKey: queryKeys.student.grades(studentId),
-    queryFn: () => studentApi.getGrades(studentId),
+    queryKey: queryKeys.student.grades(activeStudentId),
+    queryFn: () => studentApi.getGrades(activeStudentId),
   });
 
   const progressReportQuery = useQuery<ProgressReportItem>({
-    queryKey: queryKeys.student.progressReport(studentId),
-    queryFn: () => studentApi.getProgressReport(studentId),
+    queryKey: queryKeys.student.progressReport(activeStudentId),
+    queryFn: () => studentApi.getProgressReport(activeStudentId),
   });
 
   const materialsQuery = useQuery<MaterialItem[]>({
-    queryKey: queryKeys.student.materials(studentId),
-    queryFn: () => studentApi.getMaterials(studentId),
+    queryKey: queryKeys.student.materials(activeStudentId),
+    queryFn: () => studentApi.getMaterials(activeStudentId),
   });
 
   const calendarQuery = useQuery<CalendarEventItem[]>({
-    queryKey: queryKeys.student.calendar(collegeId),
-    queryFn: () => studentApi.getCalendar(collegeId),
+    queryKey: queryKeys.student.calendar(activeCollegeId),
+    queryFn: () => studentApi.getCalendar(activeCollegeId),
   });
 
   const announcementsQuery = useQuery<AnnouncementItem[]>({
-    queryKey: queryKeys.student.announcements(collegeId),
-    queryFn: () => studentApi.getAnnouncements(collegeId),
+    queryKey: queryKeys.student.announcements(activeCollegeId),
+    queryFn: () => studentApi.getAnnouncements(activeCollegeId),
   });
 
   return {

@@ -29,34 +29,50 @@ def verify_student_access(student_id: UUID, current_user: User):
             raise PermissionDeniedException("Cannot access another student's academic records")
 
 
+def resolve_student_id(student_id_str: str, current_user: User) -> UUID:
+    """Resolve student profile ID, supporting 'me', 'std-001', or explicit UUID."""
+    val = str(student_id_str).strip().lower()
+    if val in ("me", "current", "std-001") or not val:
+        if current_user.student_profile:
+            return current_user.student_profile.student_id
+    try:
+        student_id = UUID(str(student_id_str))
+    except (ValueError, AttributeError):
+        if current_user.student_profile:
+            return current_user.student_profile.student_id
+        raise PermissionDeniedException(f"Invalid student profile identifier: {student_id_str}")
+    verify_student_access(student_id, current_user)
+    return student_id
+
+
 # ----------------------------------------------------
 # STD-01: Attendance Tracking
 # ----------------------------------------------------
 @router.get("/{id}/attendance", response_model=APIResponse[StudentAttendanceOverview])
 async def get_student_attendance_summary(
-    id: UUID,
+    id: str,
     current_user: User = Depends(RequireRole(["STUDENT", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """Track personal attendance records and course percentage breakdown (STD-01)."""
-    verify_student_access(id, current_user)
+    student_id = resolve_student_id(id, current_user)
     data = await StudentService.get_student_attendance_overview(
-        db, current_user.college_id, id
+        db, current_user.college_id, student_id
     )
     return APIResponse(data=data)
 
 
 @router.get("/{id}/attendance/{course_id}", response_model=APIResponse[List[StudentAttendanceDetailItem]])
 async def get_student_course_attendance_log(
-    id: UUID,
+    id: str,
     course_id: UUID,
     current_user: User = Depends(RequireRole(["STUDENT", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """View date-by-date attendance log for enrolled course (STD-01)."""
-    verify_student_access(id, current_user)
+    student_id = resolve_student_id(id, current_user)
     data = await StudentService.get_student_course_attendance_details(
-        db, current_user.college_id, id, course_id
+        db, current_user.college_id, student_id, course_id
     )
     return APIResponse(data=data)
 
@@ -66,14 +82,14 @@ async def get_student_course_attendance_log(
 # ----------------------------------------------------
 @router.get("/{id}/timetable", response_model=APIResponse[List[StudentTimetableSlot]])
 async def get_student_lecture_timetable(
-    id: UUID,
+    id: str,
     current_user: User = Depends(RequireRole(["STUDENT", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """View personal class and lecture timetable (STD-02)."""
-    verify_student_access(id, current_user)
+    student_id = resolve_student_id(id, current_user)
     slots = await StudentService.get_student_timetable(
-        db, current_user.college_id, id
+        db, current_user.college_id, student_id
     )
     return APIResponse(data=slots)
 
@@ -83,28 +99,28 @@ async def get_student_lecture_timetable(
 # ----------------------------------------------------
 @router.get("/{id}/grades", response_model=APIResponse[List[StudentGradeItem]])
 async def get_student_assessment_grades(
-    id: UUID,
+    id: str,
     current_user: User = Depends(RequireRole(["STUDENT", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """Access assessment grades and test scores (STD-03)."""
-    verify_student_access(id, current_user)
+    student_id = resolve_student_id(id, current_user)
     grades = await StudentService.get_student_grades(
-        db, current_user.college_id, id
+        db, current_user.college_id, student_id
     )
     return APIResponse(data=grades)
 
 
 @router.get("/{id}/progress-report", response_model=APIResponse[ProgressReport])
 async def get_student_progress_report(
-    id: UUID,
+    id: str,
     current_user: User = Depends(RequireRole(["STUDENT", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """View semester GPA and progress aggregation report (STD-03)."""
-    verify_student_access(id, current_user)
+    student_id = resolve_student_id(id, current_user)
     report = await StudentService.get_student_progress_report(
-        db, current_user.college_id, id
+        db, current_user.college_id, student_id
     )
     return APIResponse(data=report)
 
@@ -114,28 +130,28 @@ async def get_student_progress_report(
 # ----------------------------------------------------
 @router.get("/{id}/courses", response_model=APIResponse[List[StudentCourseItem]])
 async def get_registered_courses(
-    id: UUID,
+    id: str,
     current_user: User = Depends(RequireRole(["STUDENT", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """View enrolled courses list (STD-04)."""
-    verify_student_access(id, current_user)
+    student_id = resolve_student_id(id, current_user)
     courses = await StudentService.get_enrolled_courses(
-        db, current_user.college_id, id
+        db, current_user.college_id, student_id
     )
     return APIResponse(data=courses)
 
 
 @router.get("/{id}/materials", response_model=APIResponse[List[CourseMaterialResponse]])
 async def get_all_enrolled_materials(
-    id: UUID,
+    id: str,
     current_user: User = Depends(RequireRole(["STUDENT", "ADMIN"])),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """Download and view course materials shared across enrolled courses (STD-04)."""
-    verify_student_access(id, current_user)
+    student_id = resolve_student_id(id, current_user)
     materials = await StudentService.get_student_all_materials(
-        db, current_user.college_id, id
+        db, current_user.college_id, student_id
     )
     return APIResponse(data=materials)
 

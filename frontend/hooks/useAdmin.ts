@@ -11,37 +11,42 @@ import {
   CalendarEventItem,
 } from "@/lib/mockData";
 
-export function useAdmin(collegeId: string = "c-apex-01") {
+export function useAdmin(collegeId?: string) {
   const queryClient = useQueryClient();
+  const activeCollegeId =
+    collegeId ||
+    (typeof window !== "undefined"
+      ? localStorage.getItem("edunexa_tenant_id") || "c-apex-01"
+      : "c-apex-01");
 
   // ADM-01: Attendance Summary
   const attendanceSummaryQuery = useQuery<AttendanceSummaryItem[]>({
-    queryKey: queryKeys.admin.attendanceSummary(collegeId),
-    queryFn: () => adminApi.getAttendanceSummary(collegeId),
+    queryKey: queryKeys.admin.attendanceSummary(activeCollegeId),
+    queryFn: () => adminApi.getAttendanceSummary(activeCollegeId),
   });
 
   // ADM-01: Attendance Trends
   const attendanceTrendsQuery = useQuery<AttendanceTrendItem[]>({
-    queryKey: queryKeys.admin.attendanceTrends(collegeId),
-    queryFn: () => adminApi.getAttendanceTrends(collegeId),
+    queryKey: queryKeys.admin.attendanceTrends(activeCollegeId),
+    queryFn: () => adminApi.getAttendanceTrends(activeCollegeId),
   });
 
   // ADM-03: Faculty Activity
   const facultyActivityQuery = useQuery<FacultyActivityItem[]>({
-    queryKey: queryKeys.admin.facultyActivity(collegeId),
-    queryFn: () => adminApi.getFacultyActivity(collegeId),
+    queryKey: queryKeys.admin.facultyActivity(activeCollegeId),
+    queryFn: () => adminApi.getFacultyActivity(activeCollegeId),
   });
 
   // ADM-02: Announcements
   const announcementsQuery = useQuery<AnnouncementItem[]>({
-    queryKey: queryKeys.admin.announcements(collegeId),
-    queryFn: () => adminApi.getAnnouncements(collegeId),
+    queryKey: queryKeys.admin.announcements(activeCollegeId),
+    queryFn: () => adminApi.getAnnouncements(activeCollegeId),
   });
 
   // ENT-09: Academic Calendar
   const calendarQuery = useQuery<CalendarEventItem[]>({
-    queryKey: queryKeys.admin.calendar(collegeId),
-    queryFn: () => adminApi.getCalendar(collegeId),
+    queryKey: queryKeys.admin.calendar(activeCollegeId),
+    queryFn: () => adminApi.getCalendar(activeCollegeId),
   });
 
   // Mutations
@@ -49,16 +54,16 @@ export function useAdmin(collegeId: string = "c-apex-01") {
     mutationFn: (payload: { title: string; content: string; target_role: string }) =>
       adminApi.createAnnouncement(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.announcements(collegeId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.faculty.announcements(collegeId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.student.announcements(collegeId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.announcements(activeCollegeId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.faculty.announcements(activeCollegeId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.student.announcements(activeCollegeId) });
     },
   });
 
   const deleteAnnouncementMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteAnnouncement(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.announcements(collegeId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.announcements(activeCollegeId) });
     },
   });
 
@@ -71,8 +76,8 @@ export function useAdmin(collegeId: string = "c-apex-01") {
       description: string;
     }) => adminApi.createCalendarEvent(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.admin.calendar(collegeId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.student.calendar(collegeId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.admin.calendar(activeCollegeId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.student.calendar(activeCollegeId) });
     },
   });
 
