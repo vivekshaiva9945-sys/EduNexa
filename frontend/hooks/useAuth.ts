@@ -33,16 +33,15 @@ export function useAuth() {
             // Keep parsed user
           }
         } else {
-          // Initialize live connection with real admin authentication
-          try {
-            const authRes = await authApi.login("admin@apex.edunexa.edu", "Admin@123", "admin");
-            if (authRes?.access_token) {
-              const me = await authApi.getCurrentUser();
-              if (isMounted && me) setUser(me);
-            } else {
+          // If stored user exists, keep it
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              if (isMounted) setUser(parsed);
+            } catch {
               if (isMounted) setUser(MOCK_USERS.admin);
             }
-          } catch {
+          } else {
             if (isMounted) setUser(MOCK_USERS.admin);
           }
         }
@@ -60,38 +59,71 @@ export function useAuth() {
     };
   }, []);
 
-  const loginAs = async (role: "admin" | "faculty" | "student") => {
+  const login = async (
+    email: string,
+    password?: string,
+    tenantDomain?: string
+  ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
-    const mockUser = MOCK_USERS[role];
     try {
-      const authRes = await authApi.login(mockUser.email, undefined, role);
+      const authRes = await authApi.login(email.trim(), password);
       if (authRes?.access_token) {
         localStorage.setItem("edunexa_token", authRes.access_token);
         if (authRes.college_id) localStorage.setItem("edunexa_tenant_id", authRes.college_id);
-        const currentUser = await authApi.getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
-          localStorage.setItem("edunexa_user", JSON.stringify(currentUser));
-        } else {
-          setUser(mockUser);
-          localStorage.setItem("edunexa_user", JSON.stringify(mockUser));
+
+        let currentUser: MockUser | null = null;
+        try {
+          currentUser = await authApi.getCurrentUser();
+        } catch {
+          // fallback
         }
-      } else {
-        localStorage.setItem("edunexa_user", JSON.stringify(mockUser));
-        setUser(mockUser);
+
+        const role = (authRes.role || currentUser?.role || "ADMIN").toUpperCase();
+        const finalUser: MockUser = currentUser || {
+          user_id: authRes.user_id,
+          college_id: authRes.college_id,
+          college_name: tenantDomain?.includes("horizon") ? "Horizon University" : "Apex Institute of Technology",
+          college_domain: tenantDomain || "apex.edunexa.edu",
+          email: email.trim(),
+          role: role as any,
+          is_active: true,
+          profile: {
+            admin_id: role === "ADMIN" ? authRes.profile_id : undefined,
+            faculty_id: role === "FACULTY" ? authRes.profile_id : undefined,
+            student_id: role === "STUDENT" ? authRes.profile_id : undefined,
+            first_name: role === "ADMIN" ? "Administrator" : role === "FACULTY" ? "Faculty Member" : "Student",
+            last_name: "",
+          },
+        };
+
+        setUser(finalUser);
+        localStorage.setItem("edunexa_user", JSON.stringify(finalUser));
+
+        let targetPath = "/admin/dashboard";
+        if (role === "FACULTY") targetPath = "/faculty/dashboard";
+        else if (role === "STUDENT") targetPath = "/student/dashboard";
+
+        if (typeof window !== "undefined") {
+          window.location.href = targetPath;
+        } else {
+          router.push(targetPath);
+        }
+        return { success: true };
       }
-    } catch {
-      localStorage.setItem("edunexa_token", `mock-jwt-token-${role}`);
-      localStorage.setItem("edunexa_tenant_id", mockUser.college_id);
-      localStorage.setItem("edunexa_user", JSON.stringify(mockUser));
-      setUser(mockUser);
+      return { success: false, error: "Authentication failed. Please check credentials." };
+    } catch (err: any) {
+      console.error("Login failed:", err);
+      const detail = err?.response?.data?.detail || err?.message || "Invalid email or password";
+      return { success: false, error: detail };
     } finally {
       setIsLoading(false);
     }
+  };
 
-    if (role === "admin") router.push("/admin/dashboard");
-    else if (role === "faculty") router.push("/faculty/dashboard");
-    else router.push("/student/dashboard");
+  const loginAs = async (role: "admin" | "faculty" | "student") => {
+    const mockUser = MOCK_USERS[role];
+    const pwd = role === "admin" ? "Admin@123" : role === "faculty" ? "Faculty@123" : "Student@123";
+    return login(mockUser.email, pwd, mockUser.college_domain);
   };
 
   const logout = () => {
@@ -99,7 +131,11 @@ export function useAuth() {
     localStorage.removeItem("edunexa_user");
     localStorage.removeItem("edunexa_tenant_id");
     setUser(null);
-    router.push("/login");
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    } else {
+      router.push("/login");
+    }
   };
 
   const switchTenant = (collegeName: string, domain: string) => {
@@ -116,6 +152,7 @@ export function useAuth() {
   return {
     user,
     isLoading,
+    login,
     loginAs,
     logout,
     switchTenant,

@@ -16,21 +16,49 @@ import {
 import Link from "next/link";
 
 export default function LoginPage() {
-  const { loginAs } = useAuth();
+  const { login, loginAs } = useAuth();
   const [email, setEmail] = useState("admin@apex.edunexa.edu");
   const [password, setPassword] = useState("Admin@123");
   const [tenant, setTenant] = useState("apex.edunexa.edu");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
     setIsSubmitting(true);
-    const role = email.includes("admin")
-      ? "admin"
-      : email.includes("rajesh") || email.includes("faculty")
-      ? "faculty"
-      : "student";
-    loginAs(role as any);
+    try {
+      const res = await login(email, password, tenant);
+      if (!res.success) {
+        setErrorMessage(res.error || "Authentication failed. Please check your credentials.");
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Failed to sign in. Please verify connection.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleQuickDemo = async (role: "admin" | "faculty" | "student") => {
+    setErrorMessage(null);
+    setIsSubmitting(true);
+    if (role === "admin") {
+      setEmail("admin@apex.edunexa.edu");
+      setPassword("Admin@123");
+    } else if (role === "faculty") {
+      setEmail("rajesh.nambiar@apex.edunexa.edu");
+      setPassword("Faculty@123");
+    } else {
+      setEmail("aarav.sharma1@apex.edunexa.edu");
+      setPassword("Student@123");
+    }
+    try {
+      await loginAs(role);
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Sign in failed");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -164,39 +192,34 @@ export default function LoginPage() {
             <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setEmail("admin@apex.edunexa.edu");
-                  setPassword("Admin@123");
-                  loginAs("admin");
-                }}
+                onClick={() => handleQuickDemo("admin")}
                 className="rounded-xl border border-blue-600/50 bg-blue-950/50 p-2.5 text-center text-xs font-bold text-blue-300 hover:bg-blue-900/70 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
               >
                 Admin
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setEmail("rajesh.nambiar@apex.edunexa.edu");
-                  setPassword("Faculty@123");
-                  loginAs("faculty");
-                }}
+                onClick={() => handleQuickDemo("faculty")}
                 className="rounded-xl border border-purple-600/50 bg-purple-950/50 p-2.5 text-center text-xs font-bold text-purple-300 hover:bg-purple-900/70 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
               >
                 Faculty
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setEmail("aarav.sharma1@apex.edunexa.edu");
-                  setPassword("Student@123");
-                  loginAs("student");
-                }}
+                onClick={() => handleQuickDemo("student")}
                 className="rounded-xl border border-emerald-600/50 bg-emerald-950/50 p-2.5 text-center text-xs font-bold text-emerald-300 hover:bg-emerald-900/70 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
               >
                 Student
               </button>
             </div>
           </div>
+
+          {errorMessage && (
+            <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-rose-400 animate-ping" />
+              {errorMessage}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
@@ -250,7 +273,16 @@ export default function LoginPage() {
               disabled={isSubmitting}
               className="w-full h-11 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold py-2.5 mt-3 shadow-lg shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer"
             >
-              Sign In to Portal <ArrowRight className="ml-2 h-4 w-4" />
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Authenticating & Redirecting...
+                </span>
+              ) : (
+                <>
+                  Sign In to Portal <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
             </Button>
           </form>
         </div>
