@@ -1,6 +1,7 @@
 // lib/api.ts
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from "axios";
 import {
+  AnnouncementItem,
   AttendanceSummaryItem,
   AttendanceTrendItem,
   CalendarEventItem,
