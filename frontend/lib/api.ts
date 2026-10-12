@@ -34,6 +34,15 @@ export const API_BASE_URL = rawUrl.endsWith("/api/v1")
   ? rawUrl
   : `${rawUrl.replace(/\/+$/, "")}/api/v1`;
 
+// Guard against rookie mistake: Never send API requests to Next.js frontend port (3000)
+if (typeof window !== "undefined" && API_BASE_URL.includes(":3000")) {
+  console.error(
+    "⚠️ CRITICAL ARCHITECTURAL MISCONFIGURATION: API_BASE_URL is pointing to port 3000 (Next.js frontend)! " +
+    "API requests must be sent strictly to the FastAPI backend (e.g., http://localhost:8000/api/v1). " +
+    "Check your NEXT_PUBLIC_API_URL environment variable."
+  );
+}
+
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 8000,
