@@ -1,34 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EduNexa Frontend (Next.js 16 + React 19)
 
-## Getting Started
+Modern, high-performance academic management dashboard built with Next.js (App Router), React 19, Tailwind CSS v4, Lucide Icons, and React Query.
 
-First, run the development server:
+## 🚀 Tech Stack
+- **Framework**: Next.js 16 (App Router + Turbopack)
+- **UI Library**: React 19 + Tailwind CSS v4 + Framer Motion
+- **State & Data Fetching**: TanStack React Query v5 & Axios
+- **Charts & Visualizations**: Recharts & OGL 3D
 
+---
+
+## 🛠 Local Setup & Development
+
+### 1. Prerequisites
+- Node.js 18.18 or higher (Node 20+ recommended)
+- npm or pnpm
+
+### 2. Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Environment Variables
+Copy `.env.example` to `.env.local`:
+```bash
+cp .env.example .env.local
+```
+Ensure `NEXT_PUBLIC_API_URL` points to your running FastAPI backend:
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 4. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## ☁️ Deployment on Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. In [Vercel Dashboard](https://vercel.com/dashboard), click **Add New...** -> **Project**.
+2. Connect your `EduNexa-Frontend` GitHub repository.
+3. Configuration:
+   - **Framework Preset**: Next.js (automatically detected)
+   - **Root Directory**: `./`
+   - **Build Command**: `npm run build` (or Next.js default)
+   - **Output Directory**: `.next` (default)
+4. Under **Environment Variables**, add:
+   - `NEXT_PUBLIC_API_URL`: `https://your-backend-app.onrender.com/api/v1` (or your Railway backend URL)
+5. Click **Deploy**.
