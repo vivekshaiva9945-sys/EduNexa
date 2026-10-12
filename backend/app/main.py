@@ -152,5 +152,6 @@ async def readiness_probe():
         )
 
 
-# Include API v1 Router
+# Include API v1 Router (supports both /api/v1 and direct routes)
 app.include_router(api_v1_router, prefix=settings.API_V1_STR)
+app.include_router(api_v1_router)
