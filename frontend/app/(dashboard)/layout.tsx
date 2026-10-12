@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AppSidebar } from "@/components/shared/AppSidebar";
 import { HeaderBar } from "@/components/shared/HeaderBar";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 export default function DashboardLayout({
   children,
@@ -14,7 +15,8 @@ export default function DashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-slate-50 dark:bg-slate-950 font-sans">
+    <AuthGuard>
+      <div className="flex h-screen w-full overflow-hidden bg-slate-50 dark:bg-slate-950 font-sans">
       {/* Desktop Sidebar */}
       <AppSidebar
         user={user}
@@ -54,5 +56,6 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+    </AuthGuard>
   );
 }

@@ -1,7 +1,10 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, status
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db_session
+from app.api.deps import get_current_user, get_db_session, security_bearer
+from app.core.security import revoke_token
 from app.models.user import User
 from app.schemas.auth import (
     LoginRequest,
@@ -79,3 +82,20 @@ async def refresh_token(
             "token_type": "bearer",
         },
     )
+
+
+@router.post("/logout", response_model=APIResponse[dict])
+async def logout(
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(security_bearer),
+):
+    """
+    Terminates the user session on the server.
+    Adds the JWT token to the server revocation registry to prevent any subsequent usage.
+    """
+    if auth and auth.credentials:
+        revoke_token(auth.credentials)
+    return APIResponse(
+        message="Session successfully terminated and token revoked on server",
+        data={"revoked": True},
+    )
+

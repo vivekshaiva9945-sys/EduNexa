@@ -27,6 +27,7 @@ import {
   StudentRosterItem,
   TimetableSlotItem,
 } from "./mockData";
+import { clearAuthSession } from "./session";
 
 const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 export const API_BASE_URL = rawUrl.endsWith("/api/v1")
@@ -60,15 +61,14 @@ apiClient.interceptors.request.use(
   (error: AxiosError) => Promise.reject(error)
 );
 
-// Interceptor for 401 handling
+// Interceptor for 401 handling - instant session destruction on expired or revoked token
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
-      const curToken = localStorage.getItem("edunexa_token");
-      if (curToken && !curToken.startsWith("mock-")) {
-        localStorage.removeItem("edunexa_token");
-        localStorage.removeItem("edunexa_user");
+      clearAuthSession();
+      if (!window.location.pathname.startsWith("/login")) {
+        window.location.replace("/login?expired=1");
       }
     }
     return Promise.reject(error);
@@ -89,16 +89,12 @@ export const authApi = {
         : "Student@123");
     try {
       const res = await apiClient.post("/auth/login", { email, password: pwd });
-      const authData = res.data.data;
-      if (typeof window !== "undefined" && authData?.access_token) {
-        localStorage.setItem("edunexa_token", authData.access_token);
-        if (authData.college_id) {
-          localStorage.setItem("edunexa_tenant_id", authData.college_id);
-        }
+      return res.data.data;
+    } catch (err: any) {
+      if (err?.response?.status === 401 || err?.response?.status === 403) {
+        throw err;
       }
-      return authData;
-    } catch (err) {
-      console.warn("Backend auth failed, falling back to mock user:", err);
+      console.warn("Backend auth failed, demo session active:", err);
       const role = (roleHint || (email.includes("admin") ? "admin" : email.includes("rajesh") || email.includes("faculty") ? "faculty" : "student")).toLowerCase();
       const mock = MOCK_USERS[role] || MOCK_USERS.admin;
       return {
@@ -113,7 +109,7 @@ export const authApi = {
     }
   },
 
-  getCurrentUser: async (): Promise<MockUser> => {
+  getCurrentUser: async (): Promise<MockUser | null> => {
     try {
       const res = await apiClient.get("/auth/me");
       const u = res.data.data;
@@ -122,12 +118,32 @@ export const authApi = {
         if (u.college_id) localStorage.setItem("edunexa_tenant_id", u.college_id);
       }
       return u;
-    } catch {
+    } catch (err: any) {
+      if (err?.response?.status === 401) {
+        return null;
+      }
       if (typeof window !== "undefined") {
         const stored = localStorage.getItem("edunexa_user");
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+          try {
+            return JSON.parse(stored);
+          } catch {
+            return null;
+          }
+        }
       }
-      return MOCK_USERS.admin;
+      return null;
+    }
+  },
+
+  logout: async (): Promise<void> => {
+    try {
+      // Invalidate token in backend revocation store
+      await apiClient.post("/auth/logout");
+    } catch {
+      // Network failure during logout should not prevent client purge
+    } finally {
+      clearAuthSession();
     }
   },
 };

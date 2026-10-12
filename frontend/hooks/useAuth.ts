@@ -1,52 +1,62 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { authApi } from "@/lib/api";
 import { MOCK_USERS, MockUser } from "@/lib/mockData";
+import {
+  setAuthSession,
+  clearAuthSession,
+  isSessionActive,
+} from "@/lib/session";
 
 export function useAuth() {
   const router = useRouter();
   const [user, setUser] = useState<MockUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Synchronize state with actual session tokens and catch bfcache events
   useEffect(() => {
     let isMounted = true;
 
     const initializeAuth = async () => {
       try {
-        const token = localStorage.getItem("edunexa_token");
-        const stored = localStorage.getItem("edunexa_user");
+        if (!isSessionActive()) {
+          if (isMounted) {
+            setUser(null);
+            setIsLoading(false);
+          }
+          return;
+        }
 
-        if (token && !token.startsWith("mock-") && stored) {
+        // Active session exists - load user metadata
+        const stored = typeof window !== "undefined" ? localStorage.getItem("edunexa_user") : null;
+        if (stored) {
           try {
             const parsed = JSON.parse(stored);
             if (isMounted) setUser(parsed);
           } catch {
-            // ignore parse error
-          }
-          // Verify with backend
-          try {
-            const me = await authApi.getCurrentUser();
-            if (isMounted && me) setUser(me);
-          } catch {
-            // Keep parsed user
-          }
-        } else {
-          // If stored user exists, keep it
-          if (stored) {
-            try {
-              const parsed = JSON.parse(stored);
-              if (isMounted) setUser(parsed);
-            } catch {
-              if (isMounted) setUser(MOCK_USERS.admin);
-            }
-          } else {
-            if (isMounted) setUser(MOCK_USERS.admin);
+            // Ignore parse error
           }
         }
+
+        // Verify token validity with backend
+        try {
+          const remoteUser = await authApi.getCurrentUser();
+          if (isMounted) {
+            if (remoteUser) {
+              setUser(remoteUser);
+            } else if (!stored) {
+              // Token invalid or revoked
+              clearAuthSession();
+              setUser(null);
+            }
+          }
+        } catch {
+          // If offline and stored user exists, keep stored user
+        }
       } catch {
-        if (isMounted) setUser(MOCK_USERS.admin);
+        if (isMounted) setUser(null);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -54,8 +64,24 @@ export function useAuth() {
 
     initializeAuth();
 
+    // Listen to browser Back/Forward (bfcache) restorations
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted || !isSessionActive()) {
+        if (!isSessionActive()) {
+          setUser(null);
+          setIsLoading(false);
+          if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+            window.location.replace("/login");
+          }
+        }
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+
     return () => {
       isMounted = false;
+      window.removeEventListener("pageshow", handlePageShow);
     };
   }, []);
 
@@ -68,14 +94,11 @@ export function useAuth() {
     try {
       const authRes = await authApi.login(email.trim(), password);
       if (authRes?.access_token) {
-        localStorage.setItem("edunexa_token", authRes.access_token);
-        if (authRes.college_id) localStorage.setItem("edunexa_tenant_id", authRes.college_id);
-
         let currentUser: MockUser | null = null;
         try {
           currentUser = await authApi.getCurrentUser();
         } catch {
-          // fallback
+          // Fallback
         }
 
         const role = (authRes.role || currentUser?.role || "ADMIN").toUpperCase();
@@ -96,17 +119,19 @@ export function useAuth() {
           },
         };
 
+        // Store tokens across both Cookies (for Next.js middleware) and LocalStorage
+        setAuthSession(authRes.access_token, finalUser);
         setUser(finalUser);
-        localStorage.setItem("edunexa_user", JSON.stringify(finalUser));
 
         let targetPath = "/admin/dashboard";
         if (role === "FACULTY") targetPath = "/faculty/dashboard";
         else if (role === "STUDENT") targetPath = "/student/dashboard";
 
         if (typeof window !== "undefined") {
-          window.location.href = targetPath;
+          // Use replace to prevent back-button loops into login
+          window.location.replace(targetPath);
         } else {
-          router.push(targetPath);
+          router.replace(targetPath);
         }
         return { success: true };
       }
@@ -126,17 +151,26 @@ export function useAuth() {
     return login(mockUser.email, pwd, mockUser.college_domain);
   };
 
-  const logout = () => {
-    localStorage.removeItem("edunexa_token");
-    localStorage.removeItem("edunexa_user");
-    localStorage.removeItem("edunexa_tenant_id");
-    setUser(null);
-    if (typeof window !== "undefined") {
-      window.location.href = "/login";
-    } else {
-      router.push("/login");
+  const logout = useCallback(async () => {
+    // 1. Immediately revoke token on backend server
+    try {
+      await authApi.logout();
+    } catch {
+      // Swallowed: client teardown must always succeed
     }
-  };
+
+    // 2. Completely destroy client-side credentials
+    clearAuthSession();
+    setUser(null);
+
+    // 3. Force hard navigation to login and replace history entry
+    // Replacing current history entry ensures the browser's Back button cannot navigate to this dashboard
+    if (typeof window !== "undefined") {
+      window.location.replace("/login");
+    } else {
+      router.replace("/login");
+    }
+  }, [router]);
 
   const switchTenant = (collegeName: string, domain: string) => {
     if (!user) return;
@@ -146,7 +180,9 @@ export function useAuth() {
       college_domain: domain,
     };
     setUser(updatedUser);
-    localStorage.setItem("edunexa_user", JSON.stringify(updatedUser));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("edunexa_user", JSON.stringify(updatedUser));
+    }
   };
 
   return {
@@ -156,6 +192,6 @@ export function useAuth() {
     loginAs,
     logout,
     switchTenant,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && isSessionActive(),
   };
 }

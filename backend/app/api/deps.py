@@ -11,7 +11,7 @@ from app.core.exceptions import (
     PermissionDeniedException,
     TenantMismatchException,
 )
-from app.core.security import decode_access_token
+from app.core.security import decode_access_token, is_token_revoked
 from app.db.session import AsyncSessionLocal, set_tenant_context
 from app.models.user import User
 
@@ -34,6 +34,10 @@ async def get_current_user(
     """Validate Bearer JWT and return active user object with tenant preloaded."""
     if not auth or not auth.credentials:
         raise AuthenticationException("Authorization Bearer token is required")
+
+    # Check server-side revocation / logout status
+    if is_token_revoked(auth.credentials):
+        raise AuthenticationException("Session has been terminated. Token has been revoked.")
 
     payload = decode_access_token(auth.credentials)
     if not payload:

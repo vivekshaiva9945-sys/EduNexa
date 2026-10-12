@@ -59,6 +59,19 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def security_and_cache_control_middleware(request: Request, call_next):
+    """Enforce strict anti-caching headers on all API routes to prevent sensitive data leakage."""
+    response = await call_next(request)
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    return response
+
+
 
 # Exception Handlers
 @app.exception_handler(AppException)
