@@ -52,5 +52,11 @@ export const queryKeys = {
       ["student", collegeId, "calendar"] as const,
     announcements: (collegeId: string) =>
       ["student", collegeId, "announcements"] as const,
+    assignments: (studentId: string) =>
+      ["student", studentId, "assignments"] as const,
+    examinations: (studentId: string) =>
+      ["student", studentId, "examinations"] as const,
+    feeLedger: (studentId: string) =>
+      ["student", studentId, "feeLedger"] as const,
   },
 };

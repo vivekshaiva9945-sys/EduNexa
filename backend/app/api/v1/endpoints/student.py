@@ -18,6 +18,12 @@ from app.schemas.student import (
     StudentCourseItem,
     StudentGradeItem,
     StudentTimetableSlot,
+    AssignmentItemResponse,
+    AssignmentSubmitRequest,
+    ExaminationItemResponse,
+    ExaminationsResponse,
+    FeeTransactionItem,
+    FeeLedgerOverviewResponse,
 )
 from app.services.student_service import StudentService
 
@@ -218,3 +224,96 @@ async def get_student_announcements(
     return APIResponse(
         data=[AnnouncementResponse.model_validate(a) for a in announcements]
     )
+
+
+# ----------------------------------------------------
+# STD-07: Assignments & Submissions
+# ----------------------------------------------------
+@router.get("/assignments", response_model=APIResponse[List[AssignmentItemResponse]])
+@router.get("/{id}/assignments", response_model=APIResponse[List[AssignmentItemResponse]])
+async def get_student_assignments(
+    id: str = "me",
+    current_user: User = Depends(RequireRole(["STUDENT", "ADMIN"])),
+    db: AsyncSession = Depends(get_tenant_session),
+):
+    """View active and past assignments with personal submission status."""
+    student_id = resolve_student_id(id, current_user)
+    data = await StudentService.get_student_assignments(
+        db, current_user.college_id, student_id
+    )
+    return APIResponse(data=data)
+
+
+@router.post("/assignments/{assignment_id}/submit", response_model=APIResponse[AssignmentItemResponse])
+@router.post("/{id}/assignments/{assignment_id}/submit", response_model=APIResponse[AssignmentItemResponse])
+async def submit_student_assignment(
+    assignment_id: UUID,
+    payload: AssignmentSubmitRequest,
+    id: str = "me",
+    current_user: User = Depends(RequireRole(["STUDENT"])),
+    db: AsyncSession = Depends(get_tenant_session),
+):
+    """Submit coursework notes or external file link for an enrolled assignment."""
+    student_id = resolve_student_id(id, current_user)
+    data = await StudentService.submit_student_assignment(
+        db,
+        current_user.college_id,
+        student_id,
+        assignment_id,
+        payload.content,
+        payload.file_url,
+    )
+    return APIResponse(message="Assignment submitted successfully", data=data)
+
+
+# ----------------------------------------------------
+# STD-08: Examinations & Results
+# ----------------------------------------------------
+@router.get("/examinations", response_model=APIResponse[ExaminationsResponse])
+@router.get("/{id}/examinations", response_model=APIResponse[ExaminationsResponse])
+async def get_student_examinations(
+    id: str = "me",
+    current_user: User = Depends(RequireRole(["STUDENT", "ADMIN"])),
+    db: AsyncSession = Depends(get_tenant_session),
+):
+    """View upcoming examination timetable and past evaluation results/transcripts."""
+    student_id = resolve_student_id(id, current_user)
+    data = await StudentService.get_student_examinations(
+        db, current_user.college_id, student_id
+    )
+    return APIResponse(data=data)
+
+
+# ----------------------------------------------------
+# STD-09: Institutional Fee Ledger & Transactions
+# ----------------------------------------------------
+@router.get("/fee-ledger", response_model=APIResponse[FeeLedgerOverviewResponse])
+@router.get("/{id}/fee-ledger", response_model=APIResponse[FeeLedgerOverviewResponse])
+async def get_student_fee_ledger(
+    id: str = "me",
+    current_user: User = Depends(RequireRole(["STUDENT", "ADMIN"])),
+    db: AsyncSession = Depends(get_tenant_session),
+):
+    """View institutional fee dues, paid records, and itemized transaction invoices."""
+    student_id = resolve_student_id(id, current_user)
+    data = await StudentService.get_student_fee_ledger(
+        db, current_user.college_id, student_id
+    )
+    return APIResponse(data=data)
+
+
+@router.post("/fee-ledger/{fee_id}/pay", response_model=APIResponse[FeeTransactionItem])
+@router.post("/{id}/fee-ledger/{fee_id}/pay", response_model=APIResponse[FeeTransactionItem])
+async def pay_student_fee_invoice(
+    fee_id: UUID,
+    id: str = "me",
+    current_user: User = Depends(RequireRole(["STUDENT"])),
+    db: AsyncSession = Depends(get_tenant_session),
+):
+    """Process payment settlement for an outstanding fee invoice."""
+    student_id = resolve_student_id(id, current_user)
+    data = await StudentService.pay_fee_invoice(
+        db, current_user.college_id, student_id, fee_id
+    )
+    return APIResponse(message="Payment settled successfully and receipt issued", data=data)
+

@@ -152,6 +152,69 @@ export interface ProgressReportItem {
   rank?: string;
 }
 
+export interface AssignmentItem {
+  assignment_id: string;
+  course_id: string;
+  course_code: string;
+  course_name: string;
+  title: string;
+  description?: string;
+  due_date: string;
+  total_marks: number;
+  status: "PENDING" | "SUBMITTED" | "GRADED" | "LATE";
+  submission_id?: string;
+  submission_date?: string;
+  marks_obtained?: number;
+  feedback?: string;
+  content?: string;
+  file_url?: string;
+  is_submitted?: boolean;
+  is_overdue?: boolean;
+}
+
+export interface ExaminationItem {
+  exam_id: string;
+  course_id: string;
+  course_code: string;
+  course_name: string;
+  title: string;
+  exam_date: string;
+  duration_minutes: number;
+  venue: string;
+  exam_type: "MIDTERM" | "FINAL" | "QUIZ" | "LAB" | "PRACTICAL";
+  total_marks: number;
+  marks_obtained?: number;
+  grade?: string;
+  remarks?: string;
+  is_past?: boolean;
+}
+
+export interface ExaminationsData {
+  upcoming: ExaminationItem[];
+  results: ExaminationItem[];
+}
+
+export interface FeeTransactionItem {
+  fee_id: string;
+  description: string;
+  amount: number;
+  fee_type: "TUITION" | "LIBRARY" | "LABORATORY" | "HOSTEL" | "EXAMINATION" | "SPORTS" | "OTHER";
+  due_date: string;
+  status: "PAID" | "UNPAID" | "OVERDUE" | "PARTIALLY_PAID";
+  payment_date?: string;
+  receipt_number?: string;
+  payment_method?: string;
+}
+
+export interface FeeLedgerData {
+  student_id: string;
+  total_dues: number;
+  total_paid: number;
+  total_overdue: number;
+  pending_invoices_count: number;
+  transactions: FeeTransactionItem[];
+}
+
 export const MOCK_USERS: Record<string, MockUser> = {
   admin: {
     user_id: "u-admin-apex-01",
@@ -644,3 +707,158 @@ export const MOCK_STUDENT_GRADES = [
     faculty_remarks: "Outstanding UX and component architecture.",
   },
 ];
+
+export const MOCK_ASSIGNMENTS: AssignmentItem[] = [
+  {
+    assignment_id: "asg-001",
+    course_id: "c-cs-301",
+    course_code: "APEX-CS301",
+    course_name: "Distributed Computing Systems",
+    title: "Distributed Consensus & Raft Protocol Simulation",
+    description: "Implement leader election and log replication using Go or Python with cluster partition test harnesses.",
+    due_date: new Date(Date.now() + 5 * 86400000).toISOString(),
+    total_marks: 100,
+    status: "SUBMITTED",
+    submission_id: "sub-001",
+    submission_date: new Date(Date.now() - 1 * 86400000).toISOString(),
+    feedback: "Pending evaluation by Dr. Rajesh Nambiar",
+    content: "Implemented 3-node Raft simulation cluster with heartbeat ping-pong.",
+    is_submitted: true,
+  },
+  {
+    assignment_id: "asg-002",
+    course_id: "c-ai-402",
+    course_code: "APEX-AI402",
+    course_name: "Deep Neural Networks & Machine Intelligence",
+    title: "Deep Learning Transformer Architecture Analysis",
+    description: "Fine-tune BERT model on sentiment classification dataset and analyze multi-head self-attention weights.",
+    due_date: new Date(Date.now() + 12 * 86400000).toISOString(),
+    total_marks: 50,
+    status: "PENDING",
+    is_submitted: false,
+  },
+  {
+    assignment_id: "asg-003",
+    course_id: "c-cs-102",
+    course_code: "APEX-CS102",
+    course_name: "Database Management Systems",
+    title: "Relational Query Optimization & Index Benchmarking",
+    description: "Profile B-Tree vs Hash index performance under 100k synthetic tuples with EXPLAIN ANALYZE.",
+    due_date: new Date(Date.now() - 3 * 86400000).toISOString(),
+    total_marks: 100,
+    status: "GRADED",
+    submission_id: "sub-003",
+    submission_date: new Date(Date.now() - 4 * 86400000).toISOString(),
+    marks_obtained: 94.5,
+    feedback: "Excellent index coverage analysis and concise query profiling.",
+    is_submitted: true,
+  },
+];
+
+export const MOCK_EXAMINATIONS: ExaminationsData = {
+  upcoming: [
+    {
+      exam_id: "ex-001",
+      course_id: "c-cs-301",
+      course_code: "APEX-CS301",
+      course_name: "Distributed Computing Systems",
+      title: "Semester End Theory Examination: Distributed Computing",
+      exam_date: new Date(Date.now() + 15 * 86400000).toISOString(),
+      duration_minutes: 180,
+      venue: "Auditorium Hall B-201",
+      exam_type: "FINAL",
+      total_marks: 100,
+      is_past: false,
+    },
+    {
+      exam_id: "ex-002",
+      course_id: "c-ai-402",
+      course_code: "APEX-AI402",
+      course_name: "Deep Neural Networks & Machine Intelligence",
+      title: "Laboratory Practical Assessment: Machine Intelligence",
+      exam_date: new Date(Date.now() + 18 * 86400000).toISOString(),
+      duration_minutes: 120,
+      venue: "Turing Advanced Computing Lab 4",
+      exam_type: "LAB",
+      total_marks: 50,
+      is_past: false,
+    },
+  ],
+  results: [
+    {
+      exam_id: "ex-003",
+      course_id: "c-cs-102",
+      course_code: "APEX-CS102",
+      course_name: "Database Management Systems",
+      title: "Midterm Evaluation: Database Engineering",
+      exam_date: new Date(Date.now() - 25 * 86400000).toISOString(),
+      duration_minutes: 90,
+      venue: "Lecture Hall 104",
+      exam_type: "MIDTERM",
+      total_marks: 50,
+      marks_obtained: 46.5,
+      grade: "A",
+      remarks: "Strong comprehension of ACID transactions and lock isolation levels.",
+      is_past: true,
+    },
+  ],
+};
+
+export const MOCK_FEE_LEDGER: FeeLedgerData = {
+  student_id: "std-001",
+  total_dues: 15500,
+  total_paid: 55000,
+  total_overdue: 12000,
+  pending_invoices_count: 2,
+  transactions: [
+    {
+      fee_id: "fee-001",
+      description: "Fall Semester Academic Tuition Fee 2026",
+      amount: 45000,
+      fee_type: "TUITION",
+      due_date: "2026-08-15",
+      status: "PAID",
+      payment_date: "2026-08-14T10:30:00Z",
+      receipt_number: "REC-2026-APEX-8901",
+      payment_method: "UPI / Net Banking",
+    },
+    {
+      fee_id: "fee-002",
+      description: "Advanced Computing & Network Lab Access",
+      amount: 7500,
+      fee_type: "LABORATORY",
+      due_date: "2026-09-01",
+      status: "PAID",
+      payment_date: "2026-08-30T14:15:00Z",
+      receipt_number: "REC-2026-APEX-9124",
+      payment_method: "Credit Card",
+    },
+    {
+      fee_id: "fee-003",
+      description: "IEEE / ACM Digital Library Subscription",
+      amount: 2500,
+      fee_type: "LIBRARY",
+      due_date: "2026-09-15",
+      status: "PAID",
+      payment_date: "2026-09-12T09:00:00Z",
+      receipt_number: "REC-2026-APEX-9450",
+      payment_method: "Debit Card",
+    },
+    {
+      fee_id: "fee-004",
+      description: "Term-End Board Examination & Evaluation Fee",
+      amount: 3500,
+      fee_type: "EXAMINATION",
+      due_date: "2026-10-25",
+      status: "UNPAID",
+    },
+    {
+      fee_id: "fee-005",
+      description: "Residential Hostel & Dining Maintenance Dues (Installment 1)",
+      amount: 12000,
+      fee_type: "HOSTEL",
+      due_date: "2026-10-05",
+      status: "OVERDUE",
+    },
+  ],
+};

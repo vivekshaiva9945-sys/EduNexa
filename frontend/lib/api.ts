@@ -26,6 +26,14 @@ import {
   StudentGradeItem,
   StudentRosterItem,
   TimetableSlotItem,
+  AssignmentItem,
+  MOCK_ASSIGNMENTS,
+  ExaminationItem,
+  ExaminationsData,
+  MOCK_EXAMINATIONS,
+  FeeTransactionItem,
+  FeeLedgerData,
+  MOCK_FEE_LEDGER,
 } from "./mockData";
 import { clearAuthSession } from "./session";
 
@@ -697,5 +705,59 @@ export const studentApi = {
     } catch {
       return MOCK_ANNOUNCEMENTS.filter((a) => a.target_role === "ALL" || a.target_role === "STUDENT");
     }
+  },
+
+  getAssignments: async (studentId: string = "me"): Promise<AssignmentItem[]> => {
+    try {
+      const res = await apiClient.get(`/student/${studentId}/assignments`);
+      const list = res.data.data;
+      if (!Array.isArray(list)) return MOCK_ASSIGNMENTS;
+      return list;
+    } catch {
+      return MOCK_ASSIGNMENTS;
+    }
+  },
+
+  submitAssignment: async (
+    assignmentId: string,
+    payload: { content?: string; file_url?: string },
+    studentId: string = "me"
+  ): Promise<AssignmentItem> => {
+    const res = await apiClient.post(`/student/${studentId}/assignments/${assignmentId}/submit`, payload);
+    return res.data.data;
+  },
+
+  getExaminations: async (studentId: string = "me"): Promise<ExaminationsData> => {
+    try {
+      const res = await apiClient.get(`/student/${studentId}/examinations`);
+      const d = res.data.data;
+      if (!d || (!d.upcoming && !d.results)) return MOCK_EXAMINATIONS;
+      return {
+        upcoming: d.upcoming || [],
+        results: d.results || [],
+      };
+    } catch {
+      return MOCK_EXAMINATIONS;
+    }
+  },
+
+  getFeeLedger: async (studentId: string = "me"): Promise<FeeLedgerData> => {
+    try {
+      const res = await apiClient.get(`/student/${studentId}/fee-ledger`);
+      const d = res.data.data;
+      if (!d || !Array.isArray(d.transactions)) return MOCK_FEE_LEDGER;
+      return d;
+    } catch {
+      return MOCK_FEE_LEDGER;
+    }
+  },
+
+  payFeeInvoice: async (
+    feeId: string,
+    studentId: string = "me",
+    paymentMethod: string = "ONLINE / UPI"
+  ): Promise<FeeTransactionItem> => {
+    const res = await apiClient.post(`/student/${studentId}/fee-ledger/${feeId}/pay`, { payment_method: paymentMethod });
+    return res.data.data;
   },
 };

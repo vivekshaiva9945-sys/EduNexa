@@ -5,6 +5,13 @@ from app.models.academic import Course, CourseEnrollment, Timetable
 from app.models.attendance import Attendance
 from app.models.grade import Grade
 from app.models.portal import CourseMaterial, Announcement, AcademicCalendar
+from app.models.student_modules import (
+    Assignment,
+    AssignmentSubmission,
+    Examination,
+    ExaminationResult,
+    FeeLedger,
+)
 
 __all__ = [
     "Base",
@@ -21,4 +28,9 @@ __all__ = [
     "CourseMaterial",
     "Announcement",
     "AcademicCalendar",
+    "Assignment",
+    "AssignmentSubmission",
+    "Examination",
+    "ExaminationResult",
+    "FeeLedger",
 ]

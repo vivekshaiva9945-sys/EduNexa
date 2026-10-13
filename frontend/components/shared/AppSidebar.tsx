@@ -18,6 +18,8 @@ import {
   TrendingUp,
   School,
   LogOut,
+  FileSignature,
+  CreditCard,
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -52,11 +54,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
 
   const studentLinks = [
     { href: "/student/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/student/assignments", label: "Assignments", icon: FileText },
+    { href: "/student/examinations", label: "Examinations", icon: FileSignature },
+    { href: "/student/fee-ledger", label: "Fee Ledger", icon: CreditCard },
     { href: "/student/attendance", label: "Attendance Log", icon: ClipboardCheck },
     { href: "/student/timetable", label: "Class Timetable", icon: Clock },
     { href: "/student/grades", label: "Grades & GPA", icon: GraduationCap },
-    { href: "/student/materials", label: "Study Resources", icon: FileText },
-    { href: "/student/calendar", label: "Events & Exams", icon: CalendarDays },
+    { href: "/student/materials", label: "Study Resources", icon: BookOpen },
+    { href: "/student/calendar", label: "Academic Calendar", icon: CalendarDays },
   ];
 
   const links =
