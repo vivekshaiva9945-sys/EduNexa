@@ -35,12 +35,14 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(dest, request.url));
     }
 
-    if (pathname.startsWith("/faculty") && userRole && userRole === "STUDENT") {
-      return NextResponse.redirect(new URL("/student/dashboard", request.url));
+    if (pathname.startsWith("/faculty") && userRole && userRole !== "FACULTY") {
+      const dest = userRole === "ADMIN" ? "/admin/dashboard" : "/student/dashboard";
+      return NextResponse.redirect(new URL(dest, request.url));
     }
 
-    if (pathname.startsWith("/student") && userRole && userRole === "FACULTY") {
-      return NextResponse.redirect(new URL("/faculty/dashboard", request.url));
+    if (pathname.startsWith("/student") && userRole && userRole !== "STUDENT") {
+      const dest = userRole === "ADMIN" ? "/admin/dashboard" : "/faculty/dashboard";
+      return NextResponse.redirect(new URL(dest, request.url));
     }
 
     // 3. Attach strict cache prevention headers to all authenticated responses

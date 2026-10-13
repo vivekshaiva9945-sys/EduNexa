@@ -23,7 +23,7 @@ import {
 
 export default function LandingPage() {
   const router = useRouter();
-  const { user, loginAs } = useAuth();
+  const { user } = useAuth();
 
   const handlePortalLaunch = () => {
     if (user) {
@@ -278,7 +278,7 @@ export default function LandingPage() {
                 Oversee campus-wide KPIs, faculty timetable schedules, college broadcasts, and institutional governance.
               </p>
               <Button
-                onClick={() => loginAs("admin")}
+                onClick={() => router.push("/login")}
                 className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs py-2 rounded-xl transition-all cursor-pointer"
               >
                 Sign In as Admin →
@@ -298,7 +298,7 @@ export default function LandingPage() {
                 1-click batch attendance recording, exam assessment marks entry, lecture schedule, and syllabus distribution.
               </p>
               <Button
-                onClick={() => loginAs("faculty")}
+                onClick={() => router.push("/login")}
                 className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs py-2 rounded-xl transition-all cursor-pointer"
               >
                 Sign In as Faculty →
@@ -318,7 +318,7 @@ export default function LandingPage() {
                 Attendance percentage health meter, warning alerts for the 75% rule, timetable, and GPA progress card.
               </p>
               <Button
-                onClick={() => loginAs("student")}
+                onClick={() => router.push("/login")}
                 className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-2 rounded-xl transition-all cursor-pointer"
               >
                 Sign In as Student →

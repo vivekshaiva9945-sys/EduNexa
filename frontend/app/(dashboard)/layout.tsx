@@ -11,7 +11,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, loginAs, logout, switchTenant } = useAuth();
+  const { user, logout, switchTenant } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -45,7 +45,6 @@ export default function DashboardLayout({
       <div className="flex flex-1 flex-col overflow-hidden">
         <HeaderBar
           user={user}
-          onSwitchRole={loginAs}
           onSwitchTenant={switchTenant}
           onToggleMobileMenu={() => setMobileMenuOpen((p) => !p)}
         />

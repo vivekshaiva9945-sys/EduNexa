@@ -88,7 +88,7 @@ apiClient.interceptors.response.use(
 // Authentication API
 // ----------------------------------------------------
 export const authApi = {
-  login: async (email: string, password?: string, roleHint?: string) => {
+  login: async (email: string, password?: string) => {
     const pwd =
       password ||
       (email.includes("admin")
@@ -104,7 +104,7 @@ export const authApi = {
         throw err;
       }
       console.warn("Backend auth failed, demo session active:", err);
-      const role = (roleHint || (email.includes("admin") ? "admin" : email.includes("rajesh") || email.includes("faculty") ? "faculty" : "student")).toLowerCase();
+      const role = (email.includes("admin") ? "admin" : email.includes("rajesh") || email.includes("faculty") ? "faculty" : "student").toLowerCase();
       const mock = MOCK_USERS[role] || MOCK_USERS.admin;
       return {
         access_token: `mock-jwt-token-${mock.role.toLowerCase()}`,

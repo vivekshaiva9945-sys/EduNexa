@@ -16,7 +16,7 @@ import {
 import Link from "next/link";
 
 export default function LoginPage() {
-  const { login, loginAs } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState("admin@apex.edunexa.edu");
   const [password, setPassword] = useState("Admin@123");
   const [tenant, setTenant] = useState("apex.edunexa.edu");
@@ -42,18 +42,22 @@ export default function LoginPage() {
   const handleQuickDemo = async (role: "admin" | "faculty" | "student") => {
     setErrorMessage(null);
     setIsSubmitting(true);
+    let targetEmail = "admin@apex.edunexa.edu";
+    let targetPwd = "Admin@123";
     if (role === "admin") {
-      setEmail("admin@apex.edunexa.edu");
-      setPassword("Admin@123");
+      targetEmail = "admin@apex.edunexa.edu";
+      targetPwd = "Admin@123";
     } else if (role === "faculty") {
-      setEmail("rajesh.nambiar@apex.edunexa.edu");
-      setPassword("Faculty@123");
+      targetEmail = "rajesh.nambiar@apex.edunexa.edu";
+      targetPwd = "Faculty@123";
     } else {
-      setEmail("aarav.sharma1@apex.edunexa.edu");
-      setPassword("Student@123");
+      targetEmail = "aarav.sharma1@apex.edunexa.edu";
+      targetPwd = "Student@123";
     }
+    setEmail(targetEmail);
+    setPassword(targetPwd);
     try {
-      await loginAs(role);
+      await login(targetEmail, targetPwd, tenant);
     } catch (err: any) {
       setErrorMessage(err?.message || "Sign in failed");
     } finally {

@@ -145,12 +145,6 @@ export function useAuth() {
     }
   };
 
-  const loginAs = async (role: "admin" | "faculty" | "student") => {
-    const mockUser = MOCK_USERS[role];
-    const pwd = role === "admin" ? "Admin@123" : role === "faculty" ? "Faculty@123" : "Student@123";
-    return login(mockUser.email, pwd, mockUser.college_domain);
-  };
-
   const logout = useCallback(async () => {
     // 1. Immediately revoke token on backend server
     try {
@@ -189,7 +183,6 @@ export function useAuth() {
     user,
     isLoading,
     login,
-    loginAs,
     logout,
     switchTenant,
     isAuthenticated: !!user && isSessionActive(),

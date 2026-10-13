@@ -69,13 +69,15 @@ export function AuthGuard({ children }: AuthGuardProps) {
         return;
       }
 
-      if (pathname.startsWith("/faculty") && role === "STUDENT") {
-        window.location.replace("/student/dashboard");
+      if (pathname.startsWith("/faculty") && role !== "FACULTY") {
+        const dest = role === "ADMIN" ? "/admin/dashboard" : "/student/dashboard";
+        window.location.replace(dest);
         return;
       }
 
-      if (pathname.startsWith("/student") && role === "FACULTY") {
-        window.location.replace("/faculty/dashboard");
+      if (pathname.startsWith("/student") && role !== "STUDENT") {
+        const dest = role === "ADMIN" ? "/admin/dashboard" : "/faculty/dashboard";
+        window.location.replace(dest);
         return;
       }
 
