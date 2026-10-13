@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useStudent } from "@/hooks/useStudent";
+import { useAuth } from "@/hooks/useAuth";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { NoticeCard } from "@/components/shared/NoticeCard";
 import { DecryptedText } from "@/components/animations/DecryptedText";
@@ -22,7 +23,13 @@ import {
 } from "lucide-react";
 
 export default function StudentDashboardPage() {
+  const { user } = useAuth();
   const { attendance, timetable, announcements, progressReport } = useStudent();
+
+  const studentFirstName = user?.profile?.first_name || "Vivek";
+  const studentLastName = user?.profile?.last_name || "I H";
+  const fullName = `${studentFirstName} ${studentLastName}`.trim();
+  const rollNumber = (user?.profile as any)?.roll_number || "APEX-2024-V01";
 
   const totalConducted = attendance.reduce((acc, c) => acc + c.conducted, 0);
   const totalAttended = attendance.reduce((acc, c) => acc + c.attended, 0);
@@ -38,10 +45,10 @@ export default function StudentDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 p-6 text-white shadow-sm border border-slate-800">
         <div className="space-y-1">
           <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-            <DecryptedText text="Welcome back, Aarav Sharma" speed={30} />
+            <DecryptedText text={`Welcome back, ${fullName}`} speed={30} />
           </h2>
           <p className="text-xs sm:text-sm text-slate-300">
-            Roll Number: APEX-2024-101 • Semester 3 • Computer Science & Eng.
+            Roll Number: {rollNumber} • Semester 3 • Computer Science & Eng.
           </p>
         </div>
         <Link href="/student/attendance">

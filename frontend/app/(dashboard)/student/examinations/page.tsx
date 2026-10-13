@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useStudent } from "@/hooks/useStudent";
+import { useAuth } from "@/hooks/useAuth";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,9 +24,15 @@ import {
 import { ExaminationItem } from "@/lib/mockData";
 
 export default function StudentExaminationsPage() {
+  const { user } = useAuth();
   const { examinations, isLoadingExaminations } = useStudent();
   const [activeTab, setActiveTab] = useState<"UPCOMING" | "RESULTS">("UPCOMING");
   const [selectedAdmitCardExam, setSelectedAdmitCardExam] = useState<ExaminationItem | null>(null);
+
+  const rollNumber = (user?.profile as any)?.roll_number || "APEX-2024-V01";
+  const studentName = user?.profile?.first_name 
+    ? `${user.profile.first_name} ${user.profile.last_name || ""}`.trim()
+    : "Vivek I H";
 
   const upcomingList = examinations.upcoming || [];
   const resultsList = examinations.results || [];
@@ -337,8 +344,12 @@ export default function StudentExaminationsPage() {
 
             <div className="space-y-3 text-xs bg-slate-950 p-4 rounded-2xl border border-slate-800">
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span className="text-slate-500">Candidate Name</span>
+                <span className="font-semibold text-white">{studentName}</span>
+              </div>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                 <span className="text-slate-500">Student Roll Number</span>
-                <span className="font-mono font-bold text-white">APEX-2024-101</span>
+                <span className="font-mono font-bold text-white">{rollNumber}</span>
               </div>
               <div className="flex items-center justify-between pb-2 border-b border-slate-800">
                 <span className="text-slate-500">Subject / Paper</span>

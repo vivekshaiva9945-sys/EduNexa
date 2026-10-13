@@ -248,18 +248,18 @@ export const MOCK_USERS: Record<string, MockUser> = {
     },
   },
   student: {
-    user_id: "u-student-apex-01",
-    college_id: "c-apex-01",
+    user_id: "0562f9e6-bd58-4640-9aa2-0281c0727143",
+    college_id: "4b26ec2e-2e91-4ee0-a508-9fa138857b96",
     college_name: "Apex Institute of Technology",
     college_domain: "apex.edunexa.edu",
-    email: "aarav.sharma1@apex.edunexa.edu",
+    email: "vivekshaiva9945@gmail.com",
     role: "STUDENT",
     is_active: true,
     profile: {
-      student_id: "std-001",
-      first_name: "Aarav",
-      last_name: "Sharma",
-      roll_number: "APEX-2024-101",
+      student_id: "e34e2c1a-3a65-4de5-8d63-47338fd6e4ad",
+      first_name: "Vivek",
+      last_name: "I H",
+      roll_number: "APEX-2024-V01",
       semester: "Sem 3",
       enrollment_year: "2024",
     },
@@ -513,6 +513,15 @@ export const MOCK_FACULTY_COURSES = [
 ];
 
 export const MOCK_COURSE_STUDENTS = [
+  {
+    student_id: "e34e2c1a-3a65-4de5-8d63-47338fd6e4ad",
+    roll_number: "APEX-2024-V01",
+    first_name: "Vivek",
+    last_name: "I H",
+    email: "vivekshaiva9945@gmail.com",
+    attendance_rate: 96.0,
+    status: "PRESENT",
+  },
   {
     student_id: "std-001",
     roll_number: "APEX-2024-101",

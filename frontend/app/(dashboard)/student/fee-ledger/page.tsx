@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useStudent } from "@/hooks/useStudent";
+import { useAuth } from "@/hooks/useAuth";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,12 +23,18 @@ import {
 import { FeeTransactionItem } from "@/lib/mockData";
 
 export default function StudentFeeLedgerPage() {
+  const { user } = useAuth();
   const {
     feeLedger,
     isLoadingFeeLedger,
     payFeeInvoice,
     isPayingFee,
   } = useStudent();
+
+  const rollNumber = (user?.profile as any)?.roll_number || "APEX-2024-V01";
+  const studentName = user?.profile?.first_name 
+    ? `${user.profile.first_name} ${user.profile.last_name || ""}`.trim()
+    : "Vivek I H";
 
   const [activeTab, setActiveTab] = useState<"ALL" | "PAID" | "PENDING" | "OVERDUE">("ALL");
   const [selectedPayInvoice, setSelectedPayInvoice] = useState<FeeTransactionItem | null>(null);
@@ -377,8 +384,12 @@ export default function StudentFeeLedgerPage() {
                 <span className="font-mono font-bold text-emerald-400">{selectedReceipt.receipt_number || "REC-2026-APEX-8901"}</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-slate-500">Candidate Name</span>
+                <span className="font-semibold text-white">{studentName}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-slate-500">Student Roll Number</span>
-                <span className="font-mono text-white">APEX-2024-101</span>
+                <span className="font-mono text-white">{rollNumber}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Item Description</span>
