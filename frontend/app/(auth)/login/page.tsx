@@ -17,8 +17,8 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("admin@apex.edunexa.edu");
-  const [password, setPassword] = useState("Admin@123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [tenant, setTenant] = useState("apex.edunexa.edu");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -34,32 +34,6 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       setErrorMessage(err?.message || "Failed to sign in. Please verify connection.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleQuickDemo = async (role: "admin" | "faculty" | "student") => {
-    setErrorMessage(null);
-    setIsSubmitting(true);
-    let targetEmail = "admin@apex.edunexa.edu";
-    let targetPwd = "Admin@123";
-    if (role === "admin") {
-      targetEmail = "admin@apex.edunexa.edu";
-      targetPwd = "Admin@123";
-    } else if (role === "faculty") {
-      targetEmail = "rajesh.nambiar@apex.edunexa.edu";
-      targetPwd = "Faculty@123";
-    } else {
-      targetEmail = "aarav.sharma1@apex.edunexa.edu";
-      targetPwd = "Student@123";
-    }
-    setEmail(targetEmail);
-    setPassword(targetPwd);
-    try {
-      await login(targetEmail, targetPwd, tenant);
-    } catch (err: any) {
-      setErrorMessage(err?.message || "Sign in failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -175,47 +149,14 @@ export default function LoginPage() {
 
       {/* Right Login Panel */}
       <div className="relative z-10 flex flex-1 items-center justify-center p-6 lg:p-12">
-        <div className="w-full max-w-md space-y-7 rounded-3xl border border-slate-700/60 bg-slate-900/75 p-8 lg:p-10 backdrop-blur-2xl shadow-2xl shadow-indigo-950/50">
+        <div className="w-full max-w-md space-y-6 rounded-3xl border border-slate-700/60 bg-slate-900/80 p-8 lg:p-10 backdrop-blur-2xl shadow-2xl shadow-indigo-950/50">
           <div className="space-y-2 text-center lg:text-left">
             <h3 className="text-2xl font-black tracking-tight text-white">
               Institutional Sign In
             </h3>
-            <p className="text-xs text-slate-300">
-              Select an account role or supply your university credentials
+            <p className="text-xs text-slate-400">
+              Enter your institutional credentials to securely access your portal
             </p>
-          </div>
-
-          {/* Quick Demo Role Selectors */}
-          <div className="space-y-2.5 rounded-2xl border border-slate-700/50 bg-slate-950/60 p-3.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3 text-indigo-400" /> Instant Demo Quick-Fill:
-              </span>
-              <span className="text-[10px] text-slate-500">One-click sign in</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickDemo("admin")}
-                className="rounded-xl border border-blue-600/50 bg-blue-950/50 p-2.5 text-center text-xs font-bold text-blue-300 hover:bg-blue-900/70 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemo("faculty")}
-                className="rounded-xl border border-purple-600/50 bg-purple-950/50 p-2.5 text-center text-xs font-bold text-purple-300 hover:bg-purple-900/70 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
-              >
-                Faculty
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickDemo("student")}
-                className="rounded-xl border border-emerald-600/50 bg-emerald-950/50 p-2.5 text-center text-xs font-bold text-emerald-300 hover:bg-emerald-900/70 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
-              >
-                Student
-              </button>
-            </div>
           </div>
 
           {errorMessage && (
@@ -268,7 +209,8 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-10 rounded-xl border-slate-700 bg-slate-800/90 text-slate-100 focus-visible:ring-indigo-500"
+                placeholder="••••••••••••"
+                className="h-10 rounded-xl border-slate-700 bg-slate-800/90 text-slate-100 placeholder:text-slate-500 focus-visible:ring-indigo-500"
               />
             </div>
 

@@ -89,15 +89,8 @@ apiClient.interceptors.response.use(
 // ----------------------------------------------------
 export const authApi = {
   login: async (email: string, password?: string) => {
-    const pwd =
-      password ||
-      (email.includes("admin")
-        ? "Admin@123"
-        : email.includes("rajesh") || email.includes("faculty")
-        ? "Faculty@123"
-        : "Student@123");
     try {
-      const res = await apiClient.post("/auth/login", { email, password: pwd });
+      const res = await apiClient.post("/auth/login", { email, password: password || "" });
       return res.data.data;
     } catch (err: any) {
       if (err?.response?.status === 401 || err?.response?.status === 403) {
