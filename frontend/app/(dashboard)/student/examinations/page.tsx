@@ -264,7 +264,7 @@ export default function StudentExaminationsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => alert("Downloading certified digital transcript PDF...")}
+                onClick={() => window.print()}
                 className="text-xs h-8 border-slate-700 bg-slate-950 text-slate-300 hover:text-white cursor-pointer"
               >
                 <Download className="h-3.5 w-3.5 mr-1.5" /> Download Transcript PDF

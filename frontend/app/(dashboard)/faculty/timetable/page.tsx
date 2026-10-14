@@ -21,10 +21,11 @@ export default function FacultyTimetablePage() {
           Requirement FAC-02: Access personal weekly teaching schedule and lecture slots.
         </p>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {days.map((day) => {
-          const slots = timetable.filter((s) => s.day === day);
+          const slots = timetable
+            .filter((s) => s.day?.toLowerCase() === day.toLowerCase())
+            .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
           return (
             <Card key={day} className="flex flex-col h-full">

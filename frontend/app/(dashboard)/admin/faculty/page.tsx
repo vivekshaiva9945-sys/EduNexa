@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useAdmin } from "@/hooks/useAdmin";
+import { adminApi } from "@/lib/api";
 import { SpotlightCard } from "@/components/animations/SpotlightCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,56 @@ import { Users, BookOpen, Clock, Activity, CalendarCheck } from "lucide-react";
 export default function AdminFacultyPage() {
   const { facultyActivity } = useAdmin();
   const [selectedFaculty, setSelectedFaculty] = useState<any | null>(null);
+
+  const [facultyLogs, setFacultyLogs] = useState<any[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+
+  React.useEffect(() => {
+    if (!selectedFaculty) {
+      setFacultyLogs([]);
+      return;
+    }
+    let isCancelled = false;
+    setIsLoadingLogs(true);
+    adminApi
+      .getFacultyLogs(undefined, selectedFaculty.faculty_id)
+      .then((logs: any[]) => {
+        if (!isCancelled) {
+          setFacultyLogs(logs || []);
+          setIsLoadingLogs(false);
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) setIsLoadingLogs(false);
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedFaculty]);
+
+  // Group logs by date & course for clean lecture session cards
+  const sessionGroups = React.useMemo(() => {
+    const map = new Map<string, { date: string; course_code: string; course_name: string; present: number; total: number; remarks: string }>();
+    facultyLogs.forEach((item) => {
+      const date = item.date_recorded || item.date || "Recent";
+      const code = item.course_code || "Lecture";
+      const key = `${date}_${code}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          date,
+          course_code: code,
+          course_name: item.course_name || "",
+          present: 0,
+          total: 0,
+          remarks: item.remarks || "Regular session",
+        });
+      }
+      const entry = map.get(key)!;
+      entry.total += 1;
+      if (item.status === "PRESENT") entry.present += 1;
+    });
+    return Array.from(map.values()).slice(0, 15);
+  }, [facultyLogs]);
 
   return (
     <div className="space-y-6">
@@ -82,7 +133,7 @@ export default function AdminFacultyPage() {
             <Button
               variant="outline"
               size="sm"
-              className="w-full mt-4 text-xs"
+              className="w-full mt-4 text-xs cursor-pointer"
               onClick={() => setSelectedFaculty(fac)}
             >
               <Activity className="mr-1.5 h-3.5 w-3.5 text-blue-600" /> View Session History
@@ -110,30 +161,36 @@ export default function AdminFacultyPage() {
 
               <div className="space-y-3">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Recent Lecture Logs:
+                  Recent Lecture Logs ({sessionGroups.length} Sessions):
                 </h4>
-                {[
-                  { date: "Oct 9, 2026", course: "APEX-CS101", room: "Hall 301", present: 39, total: 42, time: "09:05 AM" },
-                  { date: "Oct 8, 2026", course: "APEX-CS102", room: "Lab Complex 2", present: 35, total: 38, time: "11:10 AM" },
-                  { date: "Oct 7, 2026", course: "APEX-CS101", room: "Hall 301", present: 40, total: 42, time: "09:02 AM" },
-                  { date: "Oct 6, 2026", course: "APEX-CS101", room: "Hall 301", present: 38, total: 42, time: "09:00 AM" },
-                ].map((log, i) => (
-                  <div
-                    key={i}
-                    className="p-3 rounded-lg border border-slate-100 bg-white space-y-1 shadow-xs"
-                  >
-                    <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
-                      <span>{log.course} ({log.room})</span>
-                      <Badge variant="success" className="text-[10px]">
-                        {log.present}/{log.total} Present
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-400">
-                      <span>{log.date}</span>
-                      <span>Marked at {log.time}</span>
-                    </div>
+
+                {isLoadingLogs ? (
+                  <div className="p-6 text-center text-xs text-slate-400">
+                    Loading recorded lecture registers...
                   </div>
-                ))}
+                ) : sessionGroups.length > 0 ? (
+                  sessionGroups.map((log, i) => (
+                    <div
+                      key={i}
+                      className="p-3 rounded-lg border border-slate-100 bg-white space-y-1 shadow-xs"
+                    >
+                      <div className="flex items-center justify-between text-xs font-semibold text-slate-800">
+                        <span className="font-mono text-blue-700">{log.course_code}</span>
+                        <Badge variant="success" className="text-[10px]">
+                          {log.present}/{log.total} Students Present
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500">
+                        <span>{log.date}</span>
+                        <span className="italic">{log.remarks}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-4 text-center text-xs text-slate-400 border border-dashed rounded-lg">
+                    No individual lecture attendance logs submitted yet.
+                  </div>
+                )}
               </div>
             </div>
           </div>

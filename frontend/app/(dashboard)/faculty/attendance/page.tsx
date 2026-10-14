@@ -21,7 +21,7 @@ export default function FacultyAttendancePage() {
     useFaculty();
 
   const [selectedCourse, setSelectedCourse] = useState("");
-  const [sessionDate, setSessionDate] = useState("2026-10-09");
+  const [sessionDate, setSessionDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [students, setStudents] = useState<any[]>([]);
   const [attendanceState, setAttendanceState] = useState<
     Record<string, { status: "PRESENT" | "ABSENT" | "LATE"; remarks: string }>

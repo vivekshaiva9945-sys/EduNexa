@@ -21,9 +21,14 @@ import {
 export default function FacultyDashboardPage() {
   const { courses, timetable, announcements } = useFaculty();
 
+  const currentDay = React.useMemo(() => {
+    return new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(new Date());
+  }, []);
+
   const todayClasses = timetable.filter(
-    (slot) => slot.day === "Monday" || slot.day === "Tuesday"
+    (slot) => slot.day?.toLowerCase() === currentDay.toLowerCase()
   );
+  const displayClasses = todayClasses.length > 0 ? todayClasses : timetable.slice(0, 3);
 
   return (
     <div className="space-y-6">
@@ -82,7 +87,11 @@ export default function FacultyDashboardPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <div>
-                <CardTitle>Today&apos;s Lecture Schedule</CardTitle>
+                <CardTitle>
+                  {todayClasses.length > 0
+                    ? `Today's Lecture Schedule (${currentDay})`
+                    : "Upcoming Teaching Schedule"}
+                </CardTitle>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Upcoming slots and attendance tracking shortcuts
                 </p>
@@ -95,7 +104,8 @@ export default function FacultyDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {todayClasses.map((item) => (
+                {displayClasses.length > 0 ? (
+                  displayClasses.map((item) => (
                   <div
                     key={item.id}
                     className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-slate-100 bg-white hover:border-blue-200 transition-colors shadow-xs"
@@ -131,8 +141,13 @@ export default function FacultyDashboardPage() {
                       </Button>
                     </Link>
                   </div>
-                ))}
-              </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-xs text-slate-400 border border-dashed rounded-xl">
+                  No upcoming lectures scheduled.
+                </div>
+              )}
+            </div>
             </CardContent>
           </Card>
         </div>

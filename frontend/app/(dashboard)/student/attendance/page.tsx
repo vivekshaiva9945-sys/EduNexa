@@ -1,7 +1,7 @@
 "use client";
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useStudent } from "@/hooks/useStudent";
+import { studentApi } from "@/lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -9,7 +9,30 @@ import { ChevronDown, ChevronUp, CheckCircle, XCircle, Clock } from "lucide-reac
 
 export default function StudentAttendancePage() {
   const { attendance } = useStudent();
-  const [expandedCourse, setExpandedCourse] = useState<string | null>("crs-cs101");
+  const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
+  const [courseLogs, setCourseLogs] = useState<Record<string, any[]>>({});
+  const [loadingCourseId, setLoadingCourseId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (attendance.length > 0 && !expandedCourse) {
+      setExpandedCourse(attendance[0].course_id);
+    }
+  }, [attendance, expandedCourse]);
+
+  useEffect(() => {
+    if (expandedCourse && !courseLogs[expandedCourse]) {
+      setLoadingCourseId(expandedCourse);
+      studentApi
+        .getAttendanceDetail("me", expandedCourse)
+        .then((logs) => {
+          setCourseLogs((prev) => ({ ...prev, [expandedCourse]: logs || [] }));
+        })
+        .catch(() => {})
+        .finally(() => {
+          setLoadingCourseId(null);
+        });
+    }
+  }, [expandedCourse, courseLogs]);
 
   const toggleExpand = (courseId: string) => {
     setExpandedCourse((prev) => (prev === courseId ? null : courseId));
@@ -102,8 +125,15 @@ export default function StudentAttendancePage() {
                     Date-By-Date Session History
                   </h4>
                   <div className="divide-y divide-slate-100 rounded-lg border border-slate-200/60 bg-white">
-                    {sub.logs && sub.logs.length > 0 ? (
-                      sub.logs.map((log: any, idx: number) => (
+                    {loadingCourseId === sub.course_id ? (
+                      <div className="p-4 text-center text-xs text-slate-400">
+                        Loading detailed attendance records...
+                      </div>
+                    ) : (courseLogs[sub.course_id] && courseLogs[sub.course_id].length > 0) || (sub.logs && sub.logs.length > 0) ? (
+                      ((courseLogs[sub.course_id] && courseLogs[sub.course_id].length > 0)
+                        ? courseLogs[sub.course_id]
+                        : sub.logs
+                      ).map((log: any, idx: number) => (
                         <div
                           key={idx}
                           className="flex items-center justify-between p-3 text-xs"
@@ -112,8 +142,13 @@ export default function StudentAttendancePage() {
                             {getStatusIcon(log.status)}
                             <div>
                               <span className="font-medium text-slate-800">
-                                {log.date}
+                                {log.date_recorded || log.date}
                               </span>
+                              {log.faculty_name && (
+                                <span className="text-[11px] text-slate-500 block">
+                                  Instructor: {log.faculty_name}
+                                </span>
+                              )}
                               {log.remarks && (
                                 <p className="text-[11px] text-slate-400">
                                   {log.remarks}

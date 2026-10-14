@@ -67,7 +67,14 @@ export default function StudentMaterialsPage() {
                   <span>Instructor: {mat.faculty_name}</span>
                   <span>Uploaded {mat.uploaded_at}</span>
                 </div>
-                <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    const url = (mat as any).file_url || "https://assets.edunexa.edu/materials/study-packet.pdf";
+                    window.open(url, "_blank");
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs cursor-pointer"
+                >
                   <Download className="mr-1.5 h-3.5 w-3.5" /> Download Document
                 </Button>
               </div>

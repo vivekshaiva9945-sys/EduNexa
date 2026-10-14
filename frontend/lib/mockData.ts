@@ -80,6 +80,7 @@ export interface TimetableSlotItem {
   course_name: string;
   room_number: string;
   section: string;
+  faculty_name?: string;
 }
 
 export interface CourseItem {

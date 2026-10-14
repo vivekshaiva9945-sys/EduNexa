@@ -335,16 +335,30 @@ export const facultyApi = {
       const res = await apiClient.get(`/faculty/${facultyId}/timetable`);
       const list = res.data.data;
       if (!Array.isArray(list)) return MOCK_FACULTY_TIMETABLE;
-      return list.map((item: any) => ({
-        id: item.timetable_id || item.id,
-        day: item.day_of_week || item.day,
-        start_time: item.start_time,
-        end_time: item.end_time,
-        course_code: item.course_code,
-        course_name: item.course_name,
-        room_number: item.room_number || "Room 101",
-        section: item.section || "A",
-      }));
+      return list.map((item: any) => {
+        const rawDay = item.day_of_week || item.day || "";
+        const formattedDay =
+          rawDay.length > 0
+            ? rawDay.charAt(0).toUpperCase() + rawDay.slice(1).toLowerCase()
+            : rawDay;
+
+        return {
+          id: item.timetable_id || item.id,
+          day: formattedDay,
+          start_time:
+            typeof item.start_time === "string" && item.start_time.length >= 5
+              ? item.start_time.slice(0, 5)
+              : item.start_time,
+          end_time:
+            typeof item.end_time === "string" && item.end_time.length >= 5
+              ? item.end_time.slice(0, 5)
+              : item.end_time,
+          course_code: item.course_code,
+          course_name: item.course_name,
+          room_number: item.room_number || "Room 101",
+          section: item.section || "A",
+        };
+      });
     } catch {
       return MOCK_FACULTY_TIMETABLE;
     }
@@ -578,16 +592,31 @@ export const studentApi = {
       const res = await apiClient.get(`/student/${studentId}/timetable`);
       const list = res.data.data;
       if (!Array.isArray(list)) return MOCK_FACULTY_TIMETABLE;
-      return list.map((item: any) => ({
-        id: item.timetable_id || item.id,
-        day: item.day_of_week || item.day,
-        start_time: item.start_time,
-        end_time: item.end_time,
-        course_code: item.course_code,
-        course_name: item.course_name,
-        room_number: item.room_number || "Hall 4",
-        section: item.section || "A",
-      }));
+      return list.map((item: any) => {
+        const rawDay = item.day_of_week || item.day || "";
+        const formattedDay =
+          rawDay.length > 0
+            ? rawDay.charAt(0).toUpperCase() + rawDay.slice(1).toLowerCase()
+            : rawDay;
+
+        return {
+          id: item.timetable_id || item.id,
+          day: formattedDay,
+          start_time:
+            typeof item.start_time === "string" && item.start_time.length >= 5
+              ? item.start_time.slice(0, 5)
+              : item.start_time,
+          end_time:
+            typeof item.end_time === "string" && item.end_time.length >= 5
+              ? item.end_time.slice(0, 5)
+              : item.end_time,
+          course_code: item.course_code,
+          course_name: item.course_name,
+          room_number: item.room_number || "Hall 4",
+          section: item.section || "A",
+          faculty_name: item.faculty_name,
+        };
+      });
     } catch {
       return MOCK_FACULTY_TIMETABLE;
     }

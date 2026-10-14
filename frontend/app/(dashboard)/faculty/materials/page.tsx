@@ -15,11 +15,13 @@ import {
 } from "@/components/ui/dialog";
 import { Plus, FileText, Download, Trash2, BookOpen } from "lucide-react";
 import { MOCK_MATERIALS } from "@/lib/mockData";
+import { facultyApi } from "@/lib/api";
 
 export default function FacultyMaterialsPage() {
   const { courses, uploadMaterial, isUploadingMaterial } = useFaculty();
 
-  const [materials, setMaterials] = useState(MOCK_MATERIALS);
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState("ALL");
   const [modalOpen, setModalOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -31,6 +33,26 @@ export default function FacultyMaterialsPage() {
       setTargetCourse(courses[0].course_id);
     }
   }, [courses, targetCourse]);
+
+  React.useEffect(() => {
+    async function loadMaterials() {
+      setIsLoading(true);
+      try {
+        const activeCourse = selectedCourse === "ALL" ? (courses[0]?.course_id || "") : selectedCourse;
+        if (activeCourse) {
+          const list = await facultyApi.getMaterials(activeCourse);
+          setMaterials(list && list.length > 0 ? list : MOCK_MATERIALS);
+        } else {
+          setMaterials(MOCK_MATERIALS);
+        }
+      } catch {
+        setMaterials(MOCK_MATERIALS);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadMaterials();
+  }, [selectedCourse, courses]);
 
   const filtered =
     selectedCourse === "ALL"
@@ -48,27 +70,32 @@ export default function FacultyMaterialsPage() {
       file_type: "PDF",
     });
 
-    setMaterials((prev) => [
-      {
-        material_id: `mat-${Date.now()}`,
-        course_id: targetCourse,
-        course_code: courses.find((c) => c.course_id === targetCourse)?.course_code || "APEX-CS101",
-        title,
-        description: desc,
-        file_type: "PDF",
-        file_size: "2.8 MB",
-        uploaded_at: new Date().toISOString().split("T")[0],
-        faculty_name: "Dr. Rajesh Nambiar",
-      },
-      ...prev,
-    ]);
+    const newMat = {
+      material_id: res?.material_id || `mat-${Date.now()}`,
+      course_id: targetCourse,
+      course_code: courses.find((c) => c.course_id === targetCourse)?.course_code || "APEX-CS101",
+      title,
+      description: desc,
+      file_type: "PDF",
+      file_size: "2.8 MB",
+      uploaded_at: new Date().toISOString().split("T")[0],
+      faculty_name: "Dr. Rajesh Nambiar",
+      file_url: "https://assets.edunexa.edu/materials/lecture-material.pdf",
+    };
+
+    setMaterials((prev) => [newMat, ...prev]);
 
     setTitle("");
     setDesc("");
     setModalOpen(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
+    try {
+      await facultyApi.deleteMaterial(id);
+    } catch {
+      // Ignore
+    }
     setMaterials((prev) => prev.filter((m) => m.material_id !== id));
   };
 
@@ -149,7 +176,14 @@ export default function FacultyMaterialsPage() {
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
-                  <Button size="sm" variant="outline" className="h-7 text-xs">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs cursor-pointer"
+                    onClick={() => {
+                      window.open(mat.file_url || "https://assets.edunexa.edu/materials/lecture-material.pdf", "_blank");
+                    }}
+                  >
                     <Download className="mr-1 h-3 w-3" /> Download
                   </Button>
                 </div>

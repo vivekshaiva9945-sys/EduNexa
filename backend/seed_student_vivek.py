@@ -117,6 +117,57 @@ async def seed():
 
         await session.flush()
 
+        # Timetable Slots (STD-02 & FAC-02)
+        print("[*] Seeding weekly lecture timetable slots...")
+        await session.execute(
+            delete(Timetable).where(
+                Timetable.college_id == COLLEGE_ID,
+                Timetable.course_id.in_(list(COURSES.values())),
+            )
+        )
+
+        timetable_slots = [
+            # Monday
+            (COURSES["CS101"], FACULTY_IDS[0], "MONDAY", datetime.time(9, 0), datetime.time(10, 30), "Lecture Hall A-101"),
+            (COURSES["CS102"], FACULTY_IDS[1], "MONDAY", datetime.time(11, 0), datetime.time(12, 30), "Lab Complex 203"),
+            (COURSES["CE101"], FACULTY_IDS[0], "MONDAY", datetime.time(14, 0), datetime.time(15, 30), "Lecture Hall A-101"),
+            # Tuesday
+            (COURSES["IT201"], FACULTY_IDS[2], "TUESDAY", datetime.time(9, 0), datetime.time(10, 30), "Tech Lab B"),
+            (COURSES["CS101"], FACULTY_IDS[0], "TUESDAY", datetime.time(11, 0), datetime.time(12, 30), "Lecture Hall A-101"),
+            (COURSES["CS102"], FACULTY_IDS[1], "TUESDAY", datetime.time(14, 0), datetime.time(15, 30), "Computer Center 1"),
+            # Wednesday
+            (COURSES["CE101"], FACULTY_IDS[0], "WEDNESDAY", datetime.time(9, 0), datetime.time(10, 30), "Room 304"),
+            (COURSES["CS102"], FACULTY_IDS[1], "WEDNESDAY", datetime.time(11, 0), datetime.time(12, 30), "Seminar Hall B"),
+            (COURSES["IT201"], FACULTY_IDS[2], "WEDNESDAY", datetime.time(14, 0), datetime.time(15, 30), "Software Lab 4"),
+            # Thursday
+            (COURSES["CS101"], FACULTY_IDS[0], "THURSDAY", datetime.time(9, 0), datetime.time(10, 30), "Lecture Hall A-101"),
+            (COURSES["IT201"], FACULTY_IDS[2], "THURSDAY", datetime.time(11, 0), datetime.time(12, 30), "Tech Lab B"),
+            (COURSES["CE101"], FACULTY_IDS[0], "THURSDAY", datetime.time(14, 0), datetime.time(15, 30), "Room 304"),
+            # Friday
+            (COURSES["CS102"], FACULTY_IDS[1], "FRIDAY", datetime.time(9, 0), datetime.time(10, 30), "Lab Complex 203"),
+            (COURSES["IT201"], FACULTY_IDS[2], "FRIDAY", datetime.time(11, 0), datetime.time(12, 30), "Tech Lab B"),
+            (COURSES["CS101"], FACULTY_IDS[0], "FRIDAY", datetime.time(14, 0), datetime.time(15, 30), "Seminar Hall A"),
+            # Saturday
+            (COURSES["IT201"], FACULTY_IDS[2], "SATURDAY", datetime.time(10, 0), datetime.time(11, 30), "Innovation Hub"),
+            (COURSES["CS102"], FACULTY_IDS[1], "SATURDAY", datetime.time(11, 45), datetime.time(13, 15), "Computer Center 1"),
+        ]
+
+        for course_id, faculty_id, day, start_t, end_t, room in timetable_slots:
+            session.add(
+                Timetable(
+                    timetable_id=uuid.uuid4(),
+                    college_id=COLLEGE_ID,
+                    course_id=course_id,
+                    faculty_id=faculty_id,
+                    day_of_week=day,
+                    start_time=start_t,
+                    end_time=end_t,
+                    room_number=room,
+                )
+            )
+
+        await session.flush()
+
         # Attendance (wipe existing for clean refresh)
         print("[*] Seeding attendance records...")
         await session.execute(delete(Attendance).where(Attendance.student_id == student_id))
