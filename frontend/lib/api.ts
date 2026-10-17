@@ -37,7 +37,7 @@ import {
 } from "./mockData";
 import { clearAuthSession } from "./session";
 
-const rawUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+const rawUrl = process.env.NEXT_PUBLIC_API_URL || "https://edunexa-backend-qnos.onrender.com/api/v1";
 export const API_BASE_URL = rawUrl.endsWith("/api/v1")
   ? rawUrl
   : `${rawUrl.replace(/\/+$/, "")}/api/v1`;
