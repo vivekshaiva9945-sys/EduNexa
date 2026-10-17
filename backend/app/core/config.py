@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://edunexa_admin:securepassword123@localhost:5432/edunexa_multi_tenant"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres.qggsbotckwlwwifkomoa:%40vivekIH2007@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
 
     # Security
     SECRET_KEY: str = "edunexa-super-secret-production-grade-signing-key-32charsmin!"
