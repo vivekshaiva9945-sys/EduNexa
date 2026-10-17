@@ -16,6 +16,7 @@ import {
 import { Plus, FileText, Download, Trash2, BookOpen } from "lucide-react";
 import { MOCK_MATERIALS } from "@/lib/mockData";
 import { facultyApi } from "@/lib/api";
+import { downloadStudyMaterialPDF } from "@/lib/pdfGenerator";
 
 export default function FacultyMaterialsPage() {
   const { courses, uploadMaterial, isUploadingMaterial } = useFaculty();
@@ -181,7 +182,14 @@ export default function FacultyMaterialsPage() {
                     variant="outline"
                     className="h-7 text-xs cursor-pointer"
                     onClick={() => {
-                      window.open(mat.file_url || "https://assets.edunexa.edu/materials/lecture-material.pdf", "_blank");
+                      downloadStudyMaterialPDF({
+                        courseCode: mat.course_code,
+                        title: mat.title,
+                        description: mat.description,
+                        facultyName: mat.faculty_name,
+                        uploadedAt: mat.uploaded_at,
+                        fileType: mat.file_type,
+                      });
                     }}
                   >
                     <Download className="mr-1 h-3 w-3" /> Download

@@ -22,6 +22,7 @@ import {
   FileSignature,
 } from "lucide-react";
 import { ExaminationItem } from "@/lib/mockData";
+import { downloadAdmitCardPDF, downloadTranscriptPDF } from "@/lib/pdfGenerator";
 
 export default function StudentExaminationsPage() {
   const { user } = useAuth();
@@ -264,7 +265,14 @@ export default function StudentExaminationsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.print()}
+                onClick={() => {
+                  downloadTranscriptPDF({
+                    studentName,
+                    rollNumber,
+                    avgScore,
+                    results: resultsList,
+                  });
+                }}
                 className="text-xs h-8 border-slate-700 bg-slate-950 text-slate-300 hover:text-white cursor-pointer"
               >
                 <Download className="h-3.5 w-3.5 mr-1.5" /> Download Transcript PDF
@@ -383,14 +391,25 @@ export default function StudentExaminationsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedAdmitCardExam(null)}
-                className="text-xs border-slate-700 bg-slate-900 text-slate-300 hover:text-white"
+                className="text-xs border-slate-700 bg-slate-900 text-slate-300 hover:text-white cursor-pointer"
               >
                 Close
               </Button>
               <Button
                 size="sm"
                 onClick={() => {
-                  alert("Admit card PDF downloaded successfully.");
+                  downloadAdmitCardPDF({
+                    studentName,
+                    rollNumber,
+                    courseCode: selectedAdmitCardExam.course_code,
+                    courseName: selectedAdmitCardExam.course_name,
+                    examDate: formatExamDate(selectedAdmitCardExam.exam_date),
+                    examTime: formatExamTime(selectedAdmitCardExam.exam_date),
+                    venue: selectedAdmitCardExam.venue,
+                    durationMinutes: selectedAdmitCardExam.duration_minutes,
+                    totalMarks: selectedAdmitCardExam.total_marks,
+                    verificationHash: "SEC-APX-98F12-PASS",
+                  });
                   setSelectedAdmitCardExam(null);
                 }}
                 className="text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl px-4 cursor-pointer"

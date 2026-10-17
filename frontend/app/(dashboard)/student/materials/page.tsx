@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FileText, Download, BookOpen, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { downloadStudyMaterialPDF } from "@/lib/pdfGenerator";
 
 export default function StudentMaterialsPage() {
   const { materials } = useStudent();
@@ -70,12 +71,18 @@ export default function StudentMaterialsPage() {
                 <Button
                   size="sm"
                   onClick={() => {
-                    const url = (mat as any).file_url || "https://assets.edunexa.edu/materials/study-packet.pdf";
-                    window.open(url, "_blank");
+                    downloadStudyMaterialPDF({
+                      courseCode: mat.course_code,
+                      title: mat.title,
+                      description: mat.description,
+                      facultyName: mat.faculty_name,
+                      uploadedAt: mat.uploaded_at,
+                      fileType: mat.file_type,
+                    });
                   }}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs cursor-pointer"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs cursor-pointer shadow-sm"
                 >
-                  <Download className="mr-1.5 h-3.5 w-3.5" /> Download Document
+                  <Download className="mr-1.5 h-3.5 w-3.5" /> Download Document (PDF)
                 </Button>
               </div>
             </CardContent>

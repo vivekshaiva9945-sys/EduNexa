@@ -21,6 +21,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { FeeTransactionItem } from "@/lib/mockData";
+import { downloadFeeReceiptPDF } from "@/lib/pdfGenerator";
 
 export default function StudentFeeLedgerPage() {
   const { user } = useAuth();
@@ -414,14 +415,24 @@ export default function StudentFeeLedgerPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setSelectedReceipt(null)}
-                className="text-xs border-slate-700 bg-slate-900 text-slate-300"
+                className="text-xs border-slate-700 bg-slate-900 text-slate-300 hover:text-white cursor-pointer"
               >
                 Close
               </Button>
               <Button
                 size="sm"
                 onClick={() => {
-                  alert("Printing official invoice PDF voucher...");
+                  downloadFeeReceiptPDF({
+                    receiptNumber: selectedReceipt.receipt_number || "REC-2026-APEX-8901",
+                    studentName,
+                    rollNumber,
+                    description: selectedReceipt.description,
+                    category: selectedReceipt.fee_type,
+                    paymentMethod: selectedReceipt.payment_method || "UPI / Net Banking",
+                    paymentDate: selectedReceipt.payment_date ? selectedReceipt.payment_date.split("T")[0] : new Date().toISOString().split("T")[0],
+                    amount: selectedReceipt.amount,
+                    transactionRef: selectedReceipt.receipt_number ? `TXN-${selectedReceipt.receipt_number.replace(/[^0-9]/g, "")}-VERIFIED` : "TXN-9481-9921-OKAXIS",
+                  });
                   setSelectedReceipt(null);
                 }}
                 className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl px-4 cursor-pointer"
